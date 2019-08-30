@@ -1,6 +1,10 @@
 /* main.cpp
  * CSCE 463 Sample Code 
  * by Dmitri Loguinov
+ *
+ * 8/29/2019
+ * Modified by Dalton Altstaetter
+ * for HW1-1
  */
 #include "pch.h"
 
