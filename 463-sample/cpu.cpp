@@ -39,7 +39,7 @@ CPU::CPU (void)
 	// how many CPUs
 	this->cpus = len / sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION);
 
-	//printf ("found %d CPUs, total RAM %d MB\n", cpus, GetSystemRAM ());
+	printf ("found %d CPUs, total RAM %d MB\n", cpus, GetSystemRAM ());
 
 	if (cpus > MAX_CPU)
 	{
