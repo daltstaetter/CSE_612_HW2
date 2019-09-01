@@ -167,6 +167,7 @@
   <ItemGroup>
     <ClInclude Include="cpu.h" />
     <ClInclude Include="DNS.h" />
+    <ClInclude Include="HTMLParserBase.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -15,5 +15,7 @@
 #include "DNS.h"
 #include "cpu.h"
 
+#include "HTMLParserBase.h"
+
 
 #endif //PCH_H
