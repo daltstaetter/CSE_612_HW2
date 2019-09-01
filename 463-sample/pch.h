@@ -10,12 +10,16 @@
 // add headers that you want to pre-compile here
 
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <windows.h>
 
 #include "DNS.h"
 #include "cpu.h"
 
 #include "HTMLParserBase.h"
+#include "url_parser.h"
+
 
 
 #endif //PCH_H
