@@ -8,14 +8,23 @@
  */
 #include "pch.h"
 
-#define SINGLE_URL_INPUT 1
+#define SINGLE_URL_INPUT 2
 
 
 // function inside winsock.cpp
 void winsock_test(void);
 
-int32_t main(int32_t argc, uint8_t* argv[] )
+int32_t main(int32_t argc, char* argv[] )
 {
+
+    for (int i = 1; i < argc; i++)
+    {
+        url_t* url_struct = parse_url(argv[i]);
+        printf("\n\n----------------------\n");
+    }
+    return 0;
+
+    argc = SINGLE_URL_INPUT;
     if (argc == SINGLE_URL_INPUT)
     {
         url_t* url_struct = parse_url(argv[1]);
