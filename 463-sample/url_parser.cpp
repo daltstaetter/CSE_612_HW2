@@ -347,10 +347,23 @@ void parse_links(const char* paHtml_response, char* apBase_url)
 
 int32_t parse_response(const char* paResponse, url_t* paUrl_struct)
 {
+    char* pHeader;
+    char* pBody;
     char* pIs_valid;
     errno_t status;
     char base_url[MAX_HOST_LEN];
-    pIs_valid = strstr((char*)paResponse, "HTTP/1.0 2");
+   
+    // need to split response into header and body
+    // look for /r/n/r/n
+
+    pHeader = strstr((char*)paResponse, "\r\n\r\n<html>");
+    pBody = pHeader + strlen("\r\n\r\n");
+
+    *pHeader = 0;
+    pHeader = (char*) paResponse;
+
+    if ( (pIs_valid = strstr((char*)pHeader, "HTTP/1.0 2")) != NULL)
+
     
     if (pIs_valid != NULL)
     {

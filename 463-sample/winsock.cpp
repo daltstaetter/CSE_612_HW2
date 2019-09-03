@@ -18,7 +18,7 @@ void sock_check(BOOL aTest, const char* aFunction, int32_t aLine_num)
     }
 }
 
-int32_t read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size, uint32_t* paCurr_pos, int32_t threshold)
+char* read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size, uint32_t* paCurr_pos, int32_t threshold)
 {
     errno_t status;
     int32_t recv_bytes;
@@ -60,7 +60,8 @@ int32_t read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size
             if (recv_bytes == 0) // connection closed
             {
                 paRecv_buff[*paCurr_pos] = 0; // Null Terminate recv_buff
-                return SUCCESS; // normal completion
+                return paRecv_buff;
+                //return SUCCESS; // normal completion
             }
             
             // update position
@@ -70,7 +71,13 @@ int32_t read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size
             if (aRecv_buff_size - *paCurr_pos < threshold)
             {
                 small_buff = paRecv_buff;
-                paRecv_buff = (char*) realloc((char*) paRecv_buff, aRecv_buff_size*sizeof(char) * 2);
+                paRecv_buff = (char*) malloc(aRecv_buff_size*sizeof(char) * 2);
+                
+                aRecv_buff_size = aRecv_buff_size * sizeof(char) * 2;
+                threshold = aRecv_buff_size / 2;
+
+                memcpy_s(paRecv_buff, aRecv_buff_size, small_buff, aRecv_buff_size / 2);
+                
                 free(small_buff);
             }
         }
@@ -87,7 +94,7 @@ int32_t read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size
     }
 
 
-    return -1;
+    return NULL;
 }
 
 
@@ -96,10 +103,6 @@ char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     // string pointing to an HTTP server (DNS name or IP)
     //char str [] = "www.tamu.edu";
     //char str [] = "128.194.135.72";
-
-
-
-
 
     WSADATA wsaData;
     int32_t status;
@@ -186,7 +189,8 @@ char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     
     // receive HTTP response
     realloc_thresh = recv_buff_size / 2;
-    status = read_socket(&sock, recv_buff, recv_buff_size, &curr_pos, realloc_thresh);
+    recv_buff = read_socket(&sock, recv_buff, recv_buff_size, &curr_pos, realloc_thresh);
+    sock_check(recv_buff == NULL, __FUNCTION__, __LINE__ - 1);
     printf("%s\n", recv_buff);
     
     //recv(sock, recv_buff, recv_buff_size, 0);

@@ -34,11 +34,12 @@ int32_t main(int32_t argc, char* argv[] )
         if (html_response != NULL)
         {
             parse_response((const char*)html_response, url_struct);
+            free(html_response);
         }
         
         printf("\n\n----------------------\n");
 
-        free(html_response);
+        
         free(request);
         free(url_struct);
     }
