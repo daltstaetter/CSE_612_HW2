@@ -13,8 +13,8 @@ typedef struct url {
     // TODO: check request is < MAX_REQUEST_LEN
     char host[MAX_HOST_LEN] = {0};
     uint16_t port;
-    char* path[MAX_REQUEST_LEN];
-    char* query[MAX_REQUEST_LEN];
+    char path[MAX_REQUEST_LEN] = {0};
+    char query[MAX_REQUEST_LEN] = {0};
     char* fragment = NULL;
     int32_t status;
 } url_t;

@@ -68,7 +68,7 @@ url_t* parse_url(char* paInput_url)
 //    printf("argv[1]:\t%s\n", paInput_url);
 #endif // DEBUG
 
-    errno_t status = strcpy_s(pIn_url, (const char*)paInput_url);
+    errno_t status = strcpy_s(pIn_url, MAX_HOST_LEN*sizeof(char), (const char*)paInput_url);
     err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
 
     // Removes http:// from URL
@@ -82,7 +82,7 @@ url_t* parse_url(char* paInput_url)
     // Get host/IP
     // To get host/IP find the first occurence of any of [:, /, ?, #]
     //-------------------------------------------------------------
-    status = strcpy_s(pUrl_struct->host, (const char*)pIn_url);
+    status = strcpy_s(pUrl_struct->host, MAX_HOST_LEN * sizeof(char),(const char*)pIn_url);
     err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
 
     // char_search point to an entry within pUrl_struct->host
