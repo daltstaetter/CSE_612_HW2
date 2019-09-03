@@ -26,22 +26,31 @@ void remove_scheme(char* paIn_url, uint16_t max_len)
     return;
 }
 
-char* find_hostname_end(char* paIn_url)
+char* set_hostname(char* paSub_url, char* paIn_url)
 {
     // char_search point to an entry within paIn_url
     // if no match return null char location in string, i.e. end of string
-    char* char_search = get_char(paIn_url, '#');
+    char* host_end = get_char(paIn_url, '#');
 
-    if (char_search > get_char(paIn_url, '?'))
-        char_search = get_char(paIn_url, '?');
+    if (host_end > get_char(paIn_url, '?'))
+        host_end = get_char(paIn_url, '?');
 
-    if (char_search > get_char(paIn_url, '/'))
-        char_search = get_char(paIn_url, '/');
+    if (host_end > get_char(paIn_url, '/'))
+        host_end = get_char(paIn_url, '/');
 
-    if (char_search > get_char(paIn_url, ':'))
-        char_search = get_char(paIn_url, ':');
+    if (host_end > get_char(paIn_url, ':'))
+        host_end = get_char(paIn_url, ':');
 
-    return char_search;
+
+    // Keep the latter substring for additional parsing
+    errno_t status = strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*) host_end);
+    err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
+
+    // null-term the match w/in pUrl_struct->host
+    *host_end = 0;
+
+    // points to remaining substring
+    return paSub_url;
 }
 
 int32_t print_usage(void)
@@ -75,7 +84,7 @@ char* get_char(char* paSub_url, const int8_t delimiter)
 url_t* parse_url(char* paInput_url)
 {
     char pIn_url[MAX_HOST_LEN];
-    char* pTemp_str;
+    char* pSub_str;
     char* host_end;
 
     // TODO check that malloc succeeded
