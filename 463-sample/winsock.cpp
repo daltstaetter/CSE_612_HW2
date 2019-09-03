@@ -5,10 +5,10 @@
 #include "pch.h"
 #pragma comment(lib, "ws2_32.lib")
 
-void winsock_test (void)
+void winsock_test(url_t* paUrl_struct, char* paRequest)
 {
 	// string pointing to an HTTP server (DNS name or IP)
-	char str [] = "www.tamu.edu";
+	//char str [] = "www.tamu.edu";
 	//char str [] = "128.194.135.72";
 
 	WSADATA wsaData;
@@ -37,11 +37,11 @@ void winsock_test (void)
 	struct sockaddr_in server;
 
 	// first assume that the string is an IP address
-	DWORD IP = inet_addr (str);
+	DWORD IP = inet_addr (paUrl_struct->host);
 	if (IP == INADDR_NONE)
 	{
 		// if not a valid IP, then do a DNS lookup
-		if ((remote = gethostbyname (str)) == NULL)
+		if ((remote = gethostbyname (paUrl_struct->host)) == NULL)
 		{
 			printf ("Invalid string: neither FQDN, nor IP address\n");
 			return;
@@ -57,7 +57,7 @@ void winsock_test (void)
 
 	// setup the port # and protocol type
 	server.sin_family = AF_INET;
-	server.sin_port = htons (80);		// host-to-network flips the byte order
+    server.sin_port = htons(paUrl_struct->port);		// host-to-network flips the byte order
 
 	// connect to the server on port 80
 	if (connect (sock, (struct sockaddr*) &server, sizeof(struct sockaddr_in)) == SOCKET_ERROR)
@@ -66,7 +66,7 @@ void winsock_test (void)
 		return;
 	}
 
-	printf ("Successfully connected to %s (%s) on port %d\n", str, inet_ntoa (server.sin_addr), htons(server.sin_port));
+	printf ("Successfully connected to %s (%s) on port %d\n", paUrl_struct->host, inet_ntoa (server.sin_addr), htons(server.sin_port));
 	
 	// send HTTP requests here
 

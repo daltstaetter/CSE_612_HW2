@@ -4,6 +4,7 @@
 #include "url_parser.h"
 #define DEBUG
 #define FORMAT_SIZE 512
+#define HTTP_PORT   80
 
 
 void err_check(BOOL aTest, const char* aMsg, const char* aFunction, int32_t aLine_num)
@@ -96,10 +97,9 @@ errno_t set_port(char* paSub_url, uint16_t* pPort)
         {
             if (isdigit(paSub_url[1]))
             {
-                //*pPort = atoi(&paSub_url[1]); // start
-                //*pPort = ntohs(*pPort);
-                *pPort = ntohs(atoi(&paSub_url[1]));
-
+                // keep in host byte order
+                *pPort = atoi(&paSub_url[1]); // start
+                
                 // move along the string
                 uint32_t i = 1;
                 while (isdigit(paSub_url[i]))
@@ -174,7 +174,7 @@ url_t* parse_url(char* paInput_url)
     err_check(pUrl_struct == NULL, "pUrl_struct malloc()", __FUNCTION__, __LINE__ - 1);
 
     // Set default values in case we return early
-    pUrl_struct->port = htons(80); // assume port 80 if not specified
+    pUrl_struct->port = HTTP_PORT; // assume port 80 if not specified
     
     errno_t status = strcpy_s(pUrl_struct->path, MAX_REQUEST_LEN * sizeof(char), "/");
     err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
