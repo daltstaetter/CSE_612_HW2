@@ -13,6 +13,19 @@ void err_check(BOOL aTest, const char* aMsg, const char* aFunction, int32_t aLin
     }
 }
 
+void remove_scheme(char* paIn_url, uint16_t max_len)
+{
+    char* pTemp_str;
+    errno_t status;
+    
+    pTemp_str = strstr(paIn_url, "http://");
+    err_check(pTemp_str == NULL, "strstr()", __FUNCTION__, __LINE__ - 1);
+
+    status = strcpy_s(paIn_url, max_len, (pTemp_str + strlen("http://")));
+    err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
+    return;
+}
+
 int32_t print_usage(void)
 {
     printf("Incorrect Usage:\n");
@@ -57,14 +70,8 @@ url_t* parse_url(char* paInput_url)
     errno_t status = strcpy_s(pIn_url, (const char*)paInput_url);
     err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
 
-    //-------------------------------------------------------------
-    // Remove scheme
-    //-------------------------------------------------------------
-    pTemp_str = strstr(pIn_url, "http://");
-    err_check(pTemp_str == NULL, "strstr()", __FUNCTION__, __LINE__ - 1);
-
-    status = strcpy_s(pIn_url, (const char*) (pTemp_str + strlen("http://")));
-    err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
+    // Removes http:// from URL
+    remove_scheme(pIn_url, MAX_HOST_LEN * sizeof(char));
 
 #ifdef DEBUG
     printf("No scheme:\t%s\n", pIn_url);
