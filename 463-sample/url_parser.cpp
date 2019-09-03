@@ -283,7 +283,7 @@ url_t* parse_url(char* paInput_url)
 }
 
 //TODO: Free every thing i did a malloc for
-char* create_get_request(url_t* paUrl_struct)
+char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written)
 {
     char* request = (char*)malloc(MAX_REQUEST_LEN * sizeof(char));
     char format_str[FORMAT_SIZE];
@@ -293,14 +293,15 @@ char* create_get_request(url_t* paUrl_struct)
     errno_t status = strcpy_s(format_str, FORMAT_SIZE, "GET %s%s %s\r\nUser-agent: myAgent/1.0\r\nHost: %s\r\nConnection: close\r\n\r\n");
     err_check(status != SUCCESS, "strcpy_s()", __FUNCTION__, __LINE__ - 1);
 
-    errno_t bytes_writtern = _snprintf_s(request,
+    errno_t bytes_written = _snprintf_s(request,
                                          MAX_REQUEST_LEN * sizeof(char),
                                          _TRUNCATE,
                                          format_str,
                                          paUrl_struct->path, paUrl_struct->query, HTTP_ver, paUrl_struct->host
                                          );
 
-    err_check(bytes_writtern >= FORMAT_SIZE || bytes_writtern == -1, "_snprintf_s", __FUNCTION__, __LINE__ - 1);
+    err_check(bytes_written >= FORMAT_SIZE || bytes_written == -1, "_snprintf_s", __FUNCTION__, __LINE__ - 1);
+    *paBytes_written = (int32_t) bytes_written + 1; // add null char
 #ifdef DEBUG
     printf("%s\n", request);
 #endif // DEBUG

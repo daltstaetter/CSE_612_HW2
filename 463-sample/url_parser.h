@@ -23,7 +23,7 @@ typedef struct url {
 
 int32_t print_usage(void);
 url_t* parse_url(char* paInput_url);
-char* create_get_request(url_t* paUrl_struct);
+char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written);
 
 void remove_scheme(char* paIn_url, uint16_t max_len);
 char* set_hostname(char* paSub_url, char* paHostname);
