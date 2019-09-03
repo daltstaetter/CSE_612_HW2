@@ -158,26 +158,34 @@ url_t* parse_url(char* paInput_url)
     printf("host/IP:\t%s\n", pUrl_struct->host);
 #endif // DEBUG
 
+
     if (strlen(pUrl_struct->host) == 0)
     {
         printf("Invalid host/IP\n");
         print_usage();
     }
+    if (strlen(pSub_str) == 0) // nothing left to parse
+        return pUrl_struct;
 
-    pSub_str = pIn_url;
-
+    // ----------------------------------------------
+    // Parse the port
+    // ----------------------------------------------
     if (pSub_str[0] == ':')
         pSub_str = set_port(pSub_str, &(pUrl_struct->port));
+    if (strlen(pSub_str) == 0) // nothing left to parse
+        return pUrl_struct;
 
-    
-    if (pSub_str[0] == '/' || pSub_str[0] == 0)
+    // ----------------------------------------------
+    // Parse the path: could be explicit or omitted (set to '/')
+    // ----------------------------------------------
+    if (pSub_str[0] == '/')
     {
-        //pTemp_str = set_path(pIn_url, pUrl_struct->path);
+        //pSub_str = set_path(pSub_str, pUrl_struct->path);
     }
-    else if (pSub_str[0] == '?' || pSub_str[0] == '#' || pSub_str[0] == 0) // path omitted
+    else if (pSub_str[0] == '?' || pSub_str[0] == '#') // path omitted
     {
-        //status = strcpy_s(pUrl_struct->path, (const char) "/");
-        pUrl_struct->path[0] = '/';
+        status = strcpy_s(pUrl_struct->path, MAX_REQUEST_LEN * sizeof(char), "/");
+        err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
     }
     else
     {
@@ -186,6 +194,30 @@ url_t* parse_url(char* paInput_url)
         //exit(1);
 
     }
+    if (strlen(pSub_str) == 0) // nothing left to parse
+        return pUrl_struct;
+
+    // ----------------------------------------------
+    // Parse the query: could be explicit or omitted (set to '/')
+    // ----------------------------------------------
+    if (pSub_str[0] == '?') // path omitted
+    {
+
+    }
+    if (strlen(pSub_str) == 0) // nothing left to parse
+        return pUrl_struct;
+
+    // ----------------------------------------------
+    // Parse the fragment:Not used, set value to NULL
+    // ----------------------------------------------
+    if (pSub_str[0] == '#') // path omitted
+    {
+
+    }
+    if (strlen(pSub_str) == 0) // nothing left to parse
+        return pUrl_struct;
+
+
 
  
  /*   pUrl_struct->host = (char*) "www.tamu.edu";
