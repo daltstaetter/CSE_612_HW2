@@ -12,7 +12,7 @@
 
 
 // function inside winsock.cpp
-void winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRequest_size);
+char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRequest_size);
 
 int32_t main(int32_t argc, char* argv[] )
 {
@@ -29,9 +29,16 @@ int32_t main(int32_t argc, char* argv[] )
         url_t* url_struct = parse_url(argv[i]);
         char* request = create_get_request(url_struct, &request_size);
         
-        winsock_test(url_struct, (const char*) request, request_size);
+        char* html_response = winsock_test(url_struct, (const char*) request, request_size);
+
+        if (html_response != NULL)
+        {
+            parse_response((const char*)html_response, url_struct);
+        }
+        
         printf("\n\n----------------------\n");
 
+        free(html_response);
         free(request);
         free(url_struct);
     }

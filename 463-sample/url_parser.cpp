@@ -22,7 +22,12 @@ void remove_scheme(char* paIn_url, uint16_t max_len)
     errno_t status;
     
     pTemp_str = strstr(paIn_url, "http://");
-    err_check(pTemp_str == NULL, "strstr()", __FUNCTION__, __LINE__ - 1);
+
+    if (pTemp_str == NULL)
+    {
+        print_usage();
+        exit(1);
+    }
 
     status = strcpy_s(paIn_url, max_len, (pTemp_str + strlen("http://")));
     err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
@@ -290,7 +295,7 @@ char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written)
 
     char HTTP_ver[] = "HTTP/1.0";
 
-    errno_t status = strcpy_s(format_str, FORMAT_SIZE, "GET %s%s %s\r\nUser-agent: myAgent/1.0\r\nHost: %s\r\nConnection: close\r\n\r\n");
+    errno_t status = strcpy_s(format_str, FORMAT_SIZE, "GET %s%s %s\r\nUser-agent: myAgent/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n");
     err_check(status != SUCCESS, "strcpy_s()", __FUNCTION__, __LINE__ - 1);
 
     errno_t bytes_written = _snprintf_s(request,
@@ -309,4 +314,61 @@ char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written)
     return request;
 }
 
+
+
+// parse_links(response
+void parse_links(const char* paHtml_response, char* apBase_url)
+{
+    // create new parser object
+    HTMLParserBase* parser = new HTMLParserBase;
+
+    // char baseUrl[] = "http://www.tamu.edu";		// where this page came from; needed for construction of relative links
+    uint32_t len = strlen(paHtml_response);
+    err_check(len == NULL, "strlen()", __FUNCTION__, __LINE__ - 1);
+
+    int nLinks;
+    char* linkBuffer = parser->Parse((char*)paHtml_response, len, apBase_url, (int)strlen(apBase_url), &nLinks);
+
+    // check for errors indicated by negative values
+    if (nLinks < 0)
+        nLinks = 0;
+
+    printf("Found %d links:\n", nLinks);
+
+    // print each URL; these are NULL-separated C strings
+    for (int i = 0; i < nLinks; i++)
+    {
+        printf("%s\n", linkBuffer);
+        linkBuffer += strlen(linkBuffer) + 1;
+    }
+
+    delete parser;		// this internally deletes linkBuffer
+}
+
+int32_t parse_response(const char* paResponse, url_t* paUrl_struct)
+{
+    char* pIs_valid;
+    errno_t status;
+    char base_url[MAX_HOST_LEN];
+    pIs_valid = strstr((char*)paResponse, "HTTP/1.0 2");
+    
+    if (pIs_valid != NULL)
+    {
+        status = strcpy_s(base_url, MAX_HOST_LEN*sizeof(char), paUrl_struct->host);
+        err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
+
+        status = strcat_s(base_url, MAX_HOST_LEN * sizeof(char), paUrl_struct->path);
+        err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
+
+        // run the HTML parser 
+        printf("base_url: %s\n", base_url);
+        parse_links(paResponse, base_url);
+        // print everything else
+    }
+
+
+    // print HTTP_response
+
+    return 0;
+}
 

@@ -58,7 +58,10 @@ int32_t read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size
             }
 
             if (recv_bytes == 0) // connection closed
+            {
+                paRecv_buff[*paCurr_pos] = 0; // Null Terminate recv_buff
                 return SUCCESS; // normal completion
+            }
             
             // update position
             *paCurr_pos += recv_bytes;
@@ -88,7 +91,7 @@ int32_t read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size
 }
 
 
-void winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRequest_size)
+char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRequest_size)
 {
     // string pointing to an HTTP server (DNS name or IP)
     //char str [] = "www.tamu.edu";
@@ -110,7 +113,7 @@ void winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aReq
     if (WSAStartup(wVersionRequested, &wsaData) != 0) {
         printf("WSAStartup error %d\n", WSAGetLastError());
         WSACleanup();
-        return;
+        return NULL;
     }
 
     // open a TCP socket
@@ -119,7 +122,7 @@ void winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aReq
     {
         printf("socket() generated error %d\n", WSAGetLastError());
         WSACleanup();
-        return;
+        return NULL;
     }
 
     // https://docs.microsoft.com/en-us/windows/win32/winsock/ipproto-tcp-socket-options
@@ -152,7 +155,7 @@ void winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aReq
         if ((remote = gethostbyname(paUrl_struct->host)) == NULL)
         {
             printf("Invalid string: neither FQDN, nor IP address\n");
-            return;
+            return NULL;
         }
         else // take the first IP address and copy into sin_addr
             memcpy((char*) & (server.sin_addr), remote->h_addr, remote->h_length);
@@ -171,7 +174,7 @@ void winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aReq
     if (connect(sock, (struct sockaddr*) & server, sizeof(struct sockaddr_in)) == SOCKET_ERROR)
     {
         printf("Connection error: %d\n", WSAGetLastError());
-        return;
+        return NULL;
     }
 
     printf ("Successfully connected to %s (%s) on port %d\n", paUrl_struct->host, inet_ntoa (server.sin_addr), htons(server.sin_port));
@@ -184,6 +187,7 @@ void winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aReq
     // receive HTTP response
     realloc_thresh = recv_buff_size / 2;
     status = read_socket(&sock, recv_buff, recv_buff_size, &curr_pos, realloc_thresh);
+    printf("%s\n", recv_buff);
     
     //recv(sock, recv_buff, recv_buff_size, 0);
 
@@ -192,4 +196,6 @@ void winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aReq
 
 	// call cleanup when done with everything and ready to exit program
 	WSACleanup ();
+
+    return recv_buff;
 }
