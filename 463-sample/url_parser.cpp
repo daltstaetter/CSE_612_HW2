@@ -38,7 +38,7 @@ int32_t print_usage(void)
 *   Goal: Find substring index in  null-terminated string paSub_url
 *         -if no match (search returns NULL), return location of null char
 */
-char* find_hostname_end(char* paSub_url, const int8_t delimiter)
+char* get_char(char* paSub_url, const int8_t delimiter)
 {
     char* char_index;
     char_index = strchr(paSub_url, delimiter);
@@ -87,20 +87,22 @@ url_t* parse_url(char* paInput_url)
 
     // char_search point to an entry within pUrl_struct->host
     // if no match return null char location in string
-    char_search = find_hostname_end(pUrl_struct->host, '#');
+    char_search = get_char(pUrl_struct->host, '#');
+    if (char_search > get_char(pUrl_struct->host, '?'))
+        char_search = get_char(pUrl_struct->host, '?');
 
-    if (char_search > find_hostname_end(pUrl_struct->host, '?'))
-        char_search = find_hostname_end(pUrl_struct->host, '?');
+    if (char_search > get_char(pUrl_struct->host, '/'))
+        char_search = get_char(pUrl_struct->host, '/');
 
-    if (char_search > find_hostname_end(pUrl_struct->host, '/'))
-        char_search = find_hostname_end(pUrl_struct->host, '/');
+    if (char_search > get_char(pUrl_struct->host, ':'))
+        char_search = get_char(pUrl_struct->host, ':');
 
-    if (char_search > find_hostname_end(pUrl_struct->host, ':'))
-        char_search = find_hostname_end(pUrl_struct->host, ':');
+    // Keep the latter substring for additional parsing
+    status = strcpy_s(pIn_url, MAX_HOST_LEN * sizeof(char), (const char*)char_search);
+    err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
 
     // null-term the match w/in pUrl_struct->host
     *char_search = 0; 
-
 
 #ifdef DEBUG
     printf("host/IP:\t%s\n", pUrl_struct->host);
