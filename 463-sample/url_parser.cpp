@@ -26,24 +26,28 @@ void remove_scheme(char* paIn_url, uint16_t max_len)
     return;
 }
 
-char* set_hostname(char* paSub_url, char* paIn_url)
+char* set_hostname(char* paSub_url, char* paHostname)
 {
+    errno_t status = strcpy_s(paHostname, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url);
+    err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
+
+
     // char_search point to an entry within paIn_url
     // if no match return null char location in string, i.e. end of string
-    char* host_end = get_char(paIn_url, '#');
+    char* host_end = get_char(paHostname, '#');
 
-    if (host_end > get_char(paIn_url, '?'))
-        host_end = get_char(paIn_url, '?');
+    if (host_end > get_char(paHostname, '?'))
+        host_end = get_char(paHostname, '?');
 
-    if (host_end > get_char(paIn_url, '/'))
-        host_end = get_char(paIn_url, '/');
+    if (host_end > get_char(paHostname, '/'))
+        host_end = get_char(paHostname, '/');
 
-    if (host_end > get_char(paIn_url, ':'))
-        host_end = get_char(paIn_url, ':');
+    if (host_end > get_char(paHostname, ':'))
+        host_end = get_char(paHostname, ':');
 
 
     // Keep the latter substring for additional parsing
-    errno_t status = strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*) host_end);
+    status = strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*) host_end);
     err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
 
     // null-term the match w/in pUrl_struct->host
@@ -74,6 +78,45 @@ char* get_char(char* paSub_url, const int8_t delimiter)
         return paSub_url + strlen(paSub_url);
     else
         return char_index;
+}
+
+
+/*
+*
+*  
+*        
+*/
+char* set_port(const char* paSub_url, uint16_t* pPort)
+{
+    *pPort = 0;
+
+    if (':' == paSub_url[0])
+    {
+        if (strlen(paSub_url) >= 2)
+        {
+            if (isdigit(paSub_url[1]))
+            {
+                *pPort = atoi(&paSub_url[1]); // start
+                *pPort = ntohs(*pPort);
+                //*pPort = ntohs(atoi(&paSub_url[1]));
+
+                // move along the string
+                uint32_t i = 1;
+                while (isdigit(paSub_url[i]))
+                {
+                    i++;
+                }
+                paSub_url = &paSub_url[i];
+            }
+        }
+    }
+
+    return (char*) paSub_url;
+}
+
+void set_path(const char* paSub_url, char* pPath)
+{
+
 }
 
 /*
@@ -109,25 +152,42 @@ url_t* parse_url(char* paInput_url)
     // Get host/IP
     // To get host/IP find the first occurence of any of [:, /, ?, #]
     //-------------------------------------------------------------
-    status = strcpy_s(pUrl_struct->host, MAX_HOST_LEN * sizeof(char),(const char*)pIn_url);
-    err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
-
-    // char_search point to an entry within pUrl_struct->host
-    // if no match return null char location in string
-    host_end = find_hostname_end(pUrl_struct->host);
-
-    // Keep the latter substring for additional parsing
-    status = strcpy_s(pIn_url, MAX_HOST_LEN * sizeof(char), (const char*)host_end);
-    err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
-
-    // null-term the match w/in pUrl_struct->host
-    *host_end = 0;
+    pSub_str = set_hostname(pIn_url, pUrl_struct->host);
 
 #ifdef DEBUG
     printf("host/IP:\t%s\n", pUrl_struct->host);
 #endif // DEBUG
-    
 
+    if (strlen(pUrl_struct->host) == 0)
+    {
+        printf("Invalid host/IP\n");
+        print_usage();
+    }
+
+    pSub_str = pIn_url;
+
+    if (pSub_str[0] == ':')
+        pSub_str = set_port(pSub_str, &(pUrl_struct->port));
+
+    
+    if (pSub_str[0] == '/' || pSub_str[0] == 0)
+    {
+        //pTemp_str = set_path(pIn_url, pUrl_struct->path);
+    }
+    else if (pSub_str[0] == '?' || pSub_str[0] == '#' || pSub_str[0] == 0) // path omitted
+    {
+        //status = strcpy_s(pUrl_struct->path, (const char) "/");
+        pUrl_struct->path[0] = '/';
+    }
+    else
+    {
+        printf("malformed URL\nExiting...\n");
+        printf("substring\t%s\n", pSub_str);
+        //exit(1);
+
+    }
+
+ 
  /*   pUrl_struct->host = (char*) "www.tamu.edu";
     pUrl_struct->port = 11223;
     pUrl_struct->path = (char*) "/";
