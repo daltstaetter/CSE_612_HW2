@@ -21,3 +21,4 @@ typedef struct url {
 
 int32_t print_usage(void);
 url_t* parse_url(char* paInput_url);
+char* get_char(char* paSub_url, const int8_t delimiter);

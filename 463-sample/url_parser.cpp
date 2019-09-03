@@ -26,6 +26,24 @@ void remove_scheme(char* paIn_url, uint16_t max_len)
     return;
 }
 
+char* find_hostname_end(char* paIn_url)
+{
+    // char_search point to an entry within paIn_url
+    // if no match return null char location in string, i.e. end of string
+    char* char_search = get_char(paIn_url, '#');
+
+    if (char_search > get_char(paIn_url, '?'))
+        char_search = get_char(paIn_url, '?');
+
+    if (char_search > get_char(paIn_url, '/'))
+        char_search = get_char(paIn_url, '/');
+
+    if (char_search > get_char(paIn_url, ':'))
+        char_search = get_char(paIn_url, ':');
+
+    return char_search;
+}
+
 int32_t print_usage(void)
 {
     // TODO: Print the correct usage info I want
@@ -58,7 +76,7 @@ url_t* parse_url(char* paInput_url)
 {
     char pIn_url[MAX_HOST_LEN];
     char* pTemp_str;
-    char* char_search;
+    char* host_end;
 
     // TODO check that malloc succeeded
     url_t* pUrl_struct = (url_t*) malloc(sizeof(url_t));
@@ -87,22 +105,14 @@ url_t* parse_url(char* paInput_url)
 
     // char_search point to an entry within pUrl_struct->host
     // if no match return null char location in string
-    char_search = get_char(pUrl_struct->host, '#');
-    if (char_search > get_char(pUrl_struct->host, '?'))
-        char_search = get_char(pUrl_struct->host, '?');
-
-    if (char_search > get_char(pUrl_struct->host, '/'))
-        char_search = get_char(pUrl_struct->host, '/');
-
-    if (char_search > get_char(pUrl_struct->host, ':'))
-        char_search = get_char(pUrl_struct->host, ':');
+    host_end = find_hostname_end(pUrl_struct->host);
 
     // Keep the latter substring for additional parsing
-    status = strcpy_s(pIn_url, MAX_HOST_LEN * sizeof(char), (const char*)char_search);
+    status = strcpy_s(pIn_url, MAX_HOST_LEN * sizeof(char), (const char*)host_end);
     err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
 
     // null-term the match w/in pUrl_struct->host
-    *char_search = 0; 
+    *host_end = 0;
 
 #ifdef DEBUG
     printf("host/IP:\t%s\n", pUrl_struct->host);
