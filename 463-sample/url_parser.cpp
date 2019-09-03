@@ -362,10 +362,26 @@ int32_t parse_response(const char* paResponse, url_t* paUrl_struct)
     *pHeader = 0;
     pHeader = (char*) paResponse;
 
-    if ( (pIs_valid = strstr((char*)pHeader, "HTTP/1.0 2")) != NULL)
+    printf("%s\n", pHeader);
+    
+    if ( strstr(pHeader, "HTTP/1.0 2") != NULL || 
+         strstr(pHeader, "HTTP/1.1 2") != NULL )
+    {   // valid response 
+        // print response
+        // search links
+        // print num links
+        // print time
+    
+    }
+    else //if (strstr(pHeader, "HTTP/1.0 4") != NULL || strstr(pHeader, "HTTP/1.1 4") != NULL)
+    {   // invalid response
+        // print response
+        // omit search links
+        // print time
+    }
 
     
-    if (pIs_valid != NULL)
+    //if (pIs_valid != NULL)
     {
         status = strcpy_s(base_url, MAX_HOST_LEN*sizeof(char), paUrl_struct->host);
         err_check(status != SUCCESS, "strcpy()", __FUNCTION__, __LINE__ - 1);
