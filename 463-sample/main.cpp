@@ -17,6 +17,12 @@ void winsock_test(void);
 int32_t main(int32_t argc, char* argv[] )
 {
 
+    if (argc == SINGLE_URL_INPUT-1)
+    {
+        print_usage();
+        exit(1);
+    }
+
     for (int i = 1; i < argc; i++)
     {
         url_t* url_struct = parse_url(argv[i]);
