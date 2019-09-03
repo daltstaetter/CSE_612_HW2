@@ -28,7 +28,8 @@ void remove_scheme(char* paIn_url, uint16_t max_len)
 
 int32_t print_usage(void)
 {
-    printf("Incorrect Usage:\n");
+    // TODO: Print the correct usage info I want
+    printf("\nUsage:\thw1.exe scheme://host[:port][/path][?query][#fragment]\n");
     return 0;
 }
 
