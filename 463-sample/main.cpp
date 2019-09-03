@@ -26,7 +26,14 @@ int32_t main(int32_t argc, char* argv[] )
     for (int i = 1; i < argc; i++)
     {
         url_t* url_struct = parse_url(argv[i]);
+        char* request = create_get_request(url_struct);
         printf("\n\n----------------------\n");
+
+        winsock_test();
+
+
+        free(request);
+        free(url_struct);
     }
     return 0;
 
