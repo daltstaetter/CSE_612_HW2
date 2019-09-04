@@ -33,6 +33,6 @@ char* set_path(char* paSub_url, char* pPath);
 char* set_query(char* paSub_url, char* pQuery);
 
 // helpers
-static char* get_char(char* paSub_url, const int8_t delimiter);
-void err_check(BOOL aTest, const char* aMsg, const char* aFunction, int32_t aLine_num);
+char* get_char(char* paSub_url, const int8_t delimiter);
+void err_check(BOOL aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num);
 

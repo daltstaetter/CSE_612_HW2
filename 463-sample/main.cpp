@@ -16,20 +16,28 @@ char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
 
 int32_t main(int32_t argc, char* argv[] )
 {
-
     if (argc == SINGLE_URL_INPUT-1)
     {
         print_usage();
+#ifndef NO_QUIT
         exit(1);
+#endif // NO_QUIT
     }
+
+    
 
     for (int i = 1; i < argc; i++)
     {
         int32_t request_size;
+
+        printf("URL: %s\n", argv[i]);
         url_t* url_struct = parse_url(argv[i]);
-        char* request = create_get_request(url_struct, &request_size);
+        printf("\tParsing URL... host %s, port %d, request %s%s\r\n", url_struct->host, url_struct->port, url_struct->path, url_struct->query);
         
+        char* request = create_get_request(url_struct, &request_size);
         char* html_response = winsock_test(url_struct, (const char*) request, request_size);
+
+        continue;
 
         if (html_response != NULL)
         {

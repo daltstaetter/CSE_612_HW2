@@ -10,11 +10,27 @@
 #define RECV_TIMEOUT 10000
 #define RECV_BUFF_SIZE 8192
 
-void sock_check(BOOL aTest, const char* aFunction, int32_t aLine_num)
+void sock_check(BOOL aTest, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
+    const char* fname = ((char*)aFile - 1);
+    const char* exit_test;
+    char* aFile_end = (char*)aFile + strlen(aFile);
+
     if (aTest)
     {
-        printf("%s:%d: Connection error %d\n...Exiting\n", aFunction, aLine_num, WSAGetLastError());
+        do
+        {
+            fname = get_char((char*)fname + 1, '.');
+            exit_test = get_char((char*)fname + 1, '.');
+        } while (*exit_test != 0 && fname < aFile_end);
+
+        while (*(fname - 1) != '\\' && fname >= aFile)
+            fname--;
+
+        if (fname < aFile || fname > aFile_end)
+            fname = aFile; // something went wrong
+
+        printf("%s:%s:%d: Connection error %d\n...Exiting\n", fname, aFunction, aLine_num, WSAGetLastError());
     }
 }
 
@@ -93,10 +109,8 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size, 
         }
     }
 
-
     return NULL;
 }
-
 
 char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRequest_size)
 {
@@ -107,6 +121,8 @@ char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     WSADATA wsaData;
     int32_t status;
     uint32_t realloc_thresh;
+    clock_t time_start;
+    clock_t time_stop;
     uint32_t curr_pos = 0;
     uint32_t recv_buff_size = 8192;
     char* recv_buff = (char*) malloc(recv_buff_size * sizeof(char));
@@ -134,11 +150,11 @@ char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
 
     int32_t send_timeout_millis = SEND_TIMEOUT;
     status =  setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char*)& send_timeout_millis, sizeof(send_timeout_millis));
-    sock_check(status != SUCCESS, __FUNCTION__, __LINE__ - 1);
+    sock_check(status != SUCCESS, __FILE__, __FUNCTION__, __LINE__ - 1);
 
     int32_t recv_timeout_millis = RECV_TIMEOUT;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)& recv_timeout_millis, sizeof(recv_timeout_millis));
-    sock_check(status != SUCCESS, __FUNCTION__, __LINE__ - 1);
+    sock_check(status != SUCCESS, __FILE__, __FUNCTION__, __LINE__ - 1);
 
     // Need to dynamically resize if larger than recv_buff
     //int32_t recv_buff_size = RECV_BUFF_SIZE;
@@ -152,10 +168,14 @@ char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
 
     // first assume that the string is an IP address
     DWORD IP = inet_addr(paUrl_struct->host);
+    
     if (IP == INADDR_NONE)
     {
-        // if not a valid IP, then do a DNS lookup
-        if ((remote = gethostbyname(paUrl_struct->host)) == NULL)
+        time_start = clock();
+        remote = gethostbyname(paUrl_struct->host); // if not a valid IP, then do a DNS lookup
+        time_stop = clock();
+        //status = 
+        if (remote == NULL)
         {
             printf("Invalid string: neither FQDN, nor IP address\n");
             return NULL;
@@ -167,33 +187,37 @@ char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     {
         // if a valid IP, directly drop its binary version into sin_addr
         server.sin_addr.S_un.S_addr = IP;
+        time_start = clock();
+        time_stop = time_start;
     }
+    
+    printf("\tDoing DNS... done in %d ms, found %s\n", time_stop-time_start, inet_ntoa (server.sin_addr));
 
     // setup the port # and protocol type
     server.sin_family = AF_INET;
     server.sin_port = htons(paUrl_struct->port);		// host-to-network flips the byte order
 
     // connect to the server on specified port
-    if (connect(sock, (struct sockaddr*) & server, sizeof(struct sockaddr_in)) == SOCKET_ERROR)
+    time_start = clock();
+    status = connect(sock, (struct sockaddr*) & server, sizeof(struct sockaddr_in));
+    time_stop = clock();
+
+    if (status == SOCKET_ERROR)
     {
         printf("Connection error: %d\n", WSAGetLastError());
         return NULL;
     }
+    printf("      * Connecting on page... done in %d ms\n", time_stop- time_start);// connected to %s (%s) on port %d\n", paUrl_struct->host, inet_ntoa(server.sin_addr), htons(server.sin_port));
 
-    printf ("Successfully connected to %s (%s) on port %d\n", paUrl_struct->host, inet_ntoa (server.sin_addr), htons(server.sin_port));
-
+    
     // send HTTP requests here
     status = send(sock, paRequest, aRequest_size, 0);
-    sock_check(status == SOCKET_ERROR || status > aRequest_size, __FUNCTION__, __LINE__ - 1);
-
+    sock_check(status == SOCKET_ERROR || status > aRequest_size, __FILE__, __FUNCTION__, __LINE__ - 1);
     
     // receive HTTP response
     realloc_thresh = recv_buff_size / 2;
     recv_buff = read_socket(&sock, recv_buff, recv_buff_size, &curr_pos, realloc_thresh);
-    sock_check(recv_buff == NULL, __FUNCTION__, __LINE__ - 1);
-    printf("%s\n", recv_buff);
-    
-    //recv(sock, recv_buff, recv_buff_size, 0);
+    sock_check(recv_buff == NULL, __FILE__, __FUNCTION__, __LINE__ - 1);
 
 	// close the socket to this server; open again for the next one
 	closesocket (sock);

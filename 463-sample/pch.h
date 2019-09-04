@@ -20,6 +20,8 @@
 #include "HTMLParserBase.h"
 #include "url_parser.h"
 
+#define DEBU
+#define NO_QUIT
 
 
 #endif //PCH_H
