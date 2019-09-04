@@ -21,7 +21,7 @@ typedef struct url {
     int32_t status;
 } url_t;
 
-int32_t print_usage(void);
+void print_usage(void);
 url_t* parse_url(char* paInput_url);
 char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written);
 int32_t parse_response(const char* paResponse, url_t* paUrl_struct);

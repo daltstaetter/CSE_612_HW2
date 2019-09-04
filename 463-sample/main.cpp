@@ -12,7 +12,7 @@
 
 
 // function inside winsock.cpp
-char* winsock_test(url_t* paUrl_struct, const char* paRequest, const int32_t aRequest_size);
+char* send_request(url_t* paUrl_struct, const char* paRequest, const int32_t aRequest_size);
 
 int32_t main(int32_t argc, char* argv[] )
 {
@@ -24,29 +24,25 @@ int32_t main(int32_t argc, char* argv[] )
 #endif // NO_QUIT
     }
 
-    
-
     for (int i = 1; i < argc; i++)
     {
+        if (i == 88 || i == 3 || i == 4 || i == 5 || i == 6 || i == 7)
+            continue;
         int32_t request_size;
 
         printf("URL: %s\n", argv[i]);
+        printf("\tParsing URL... ");
         url_t* url_struct = parse_url(argv[i]);
-        printf("\tParsing URL... host %s, port %d, request %s%s\r\n", url_struct->host, url_struct->port, url_struct->path, url_struct->query);
+        printf("host %s, port %d, request %s%s\n", url_struct->host, url_struct->port, url_struct->path, url_struct->query);
         
         char* request = create_get_request(url_struct, &request_size);
-        char* html_response = winsock_test(url_struct, (const char*) request, request_size);
+        char* html_response = send_request(url_struct, (const char*) request, request_size);
 
-        continue;
-
-        if (html_response != NULL)
+        if (html_response)
         {
             parse_response((const char*)html_response, url_struct);
             free(html_response);
         }
-        
-        printf("\n\n----------------------\n");
-
         
         free(request);
         free(url_struct);

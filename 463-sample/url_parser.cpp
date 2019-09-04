@@ -5,7 +5,6 @@
 #define FORMAT_SIZE 512
 #define HTTP_PORT   80
 
-
 void err_check(BOOL aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
     const char* fname = ((char*) aFile - 1);
@@ -26,8 +25,7 @@ void err_check(BOOL aTest, const char* aMsg, const char* aFile, const char* aFun
         if (fname < aFile || fname > aFile_end)
             fname = aFile; // something went wrong
 
-
-        printf("%s:%s:%d: Error in %s()...\n...Exiting\n", fname, aFunction, aLine_num, aMsg);
+        printf("%s:%s():%d: Error in %s...\n...Exiting\n", fname, aFunction, aLine_num, aMsg);
 #ifndef NO_QUIT
         exit(1);
 #endif // NO_QUIT
@@ -38,28 +36,25 @@ void err_check(BOOL aTest, const char* aMsg, const char* aFile, const char* aFun
 void remove_scheme(char* paIn_url, uint16_t max_len)
 {
     char* pTemp_str;
-    errno_t status;
     
     pTemp_str = strstr(paIn_url, "http://");
 
-    if (pTemp_str == NULL)
+    if (pTemp_str) // it matched HTTP
     {
-        print_usage();
+        err_check((strcpy_s(paIn_url, max_len, (pTemp_str + strlen("http://")))) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+    }
+    else
+    {
+        printf("failed with invalid scheme\n");
 #ifndef NO_QUIT
         exit(1);
 #endif // NO_QUIT
     }
-
-    status = strcpy_s(paIn_url, max_len, (pTemp_str + strlen("http://")));
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
-    return;
 }
 
 char* set_hostname(char* paSub_url, char* paHostname)
 {
-    errno_t status = strcpy_s(paHostname, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url);
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
-
+    err_check((strcpy_s(paHostname, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url)) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     // char_search point to an entry within paIn_url
     // if no match return null char location in string, i.e. end of string
@@ -74,10 +69,8 @@ char* set_hostname(char* paSub_url, char* paHostname)
     if (host_end > get_char(paHostname, ':'))
         host_end = get_char(paHostname, ':');
 
-
     // Keep the latter substring for additional parsing
-    status = strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*) host_end);
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
+    err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*)host_end)) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     // null-term the match w/in pUrl_struct->host
     *host_end = 0;
@@ -86,11 +79,13 @@ char* set_hostname(char* paSub_url, char* paHostname)
     return paSub_url;
 }
 
-int32_t print_usage(void)
+void print_usage(void)
 {
     // TODO: Print the correct usage info I want
     printf("\nUsage:\thw1.exe scheme://host[:port][/path][?query][#fragment]\n");
-    return 0;
+#ifndef NO_QUIT
+    exit(1);
+#endif // NO_QUIT
 }
 
 /*
@@ -132,18 +127,32 @@ errno_t set_port(char* paSub_url, uint16_t* pPort)
                 {
                     i++;
                 }
-                //paSub_url = &paSub_url[i];
-                errno_t status = strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), paSub_url + sizeof(char)*i);
-                err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__,__LINE__ - 1);
-
+                
+                err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), paSub_url + sizeof(char) * i)) != SUCCESS, 
+                          "strcpy()", __FILE__, __FUNCTION__,__LINE__);
                 return SUCCESS;
             }
+            else if (paSub_url[1] == '-')
+            {
+                // check for negative numbers
+                printf("failed with invalid port\n");
+#ifndef NO_QUIT
+                exit(1);
+#endif // NO_QUIT
+            }
         }
-        else // there is nothing after the ':' character, null terminate paSub_url
+        else // there is nothing after the 1st ':' character, null terminate paSub_url
         {
-            paSub_url[0] = 0;
+            //paSub_url[0] = 0;
         }
+    }
 
+    if (*pPort == 0) // zero is an invalid port number
+    {
+        printf("failed with invalid port\n");
+#ifndef NO_QUIT
+        exit(1);
+#endif // NO_QUIT
     }
 
     return -1;
@@ -152,8 +161,8 @@ errno_t set_port(char* paSub_url, uint16_t* pPort)
 // pSub_str = set_path(pSub_str, pUrl_struct->path);
 char* set_path(char* paSub_url, char* pPath)
 {
-    errno_t status = strcpy_s(pPath, MAX_HOST_LEN * sizeof(char), (const char*) paSub_url);
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
+    err_check((strcpy_s(pPath, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url)) != SUCCESS, 
+              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     char* char_search = get_char(pPath, '#');
 
@@ -161,8 +170,8 @@ char* set_path(char* paSub_url, char* pPath)
         char_search = get_char(pPath, '?');
 
     // Keep the latter substring for additional parsing
-    status = strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*) char_search);
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
+    err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*)char_search)) != SUCCESS, 
+              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     // null-term the match w/in pPath
     *char_search = 0;
@@ -173,14 +182,14 @@ char* set_path(char* paSub_url, char* pPath)
 
 char* set_query(char* paSub_url, char* pQuery)
 {
-    errno_t status = strcpy_s(pQuery, MAX_HOST_LEN * sizeof(char), (const char*) paSub_url);
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
+    err_check((strcpy_s(pQuery, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url)) != SUCCESS, 
+              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     char* char_search = get_char(pQuery, '#');
 
     // Keep the latter substring for additional parsing
-    status = strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*) char_search);
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
+    err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*)char_search)) != SUCCESS, 
+              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     // null-term the match w/in pQuery
     *char_search = 0;
@@ -207,8 +216,8 @@ url_t* parse_url(char* paInput_url)
     // Set default values in case we return early
     pUrl_struct->port = HTTP_PORT; // assume port 80 if not specified
     
-    errno_t status = strcpy_s(pUrl_struct->path, MAX_REQUEST_LEN * sizeof(char), "/");
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
+    err_check((strcpy_s(pUrl_struct->path, MAX_REQUEST_LEN * sizeof(char), "/")) != SUCCESS, 
+              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     pUrl_struct->query[0] = 0;
     pUrl_struct->fragment[0] = 0;
@@ -217,8 +226,8 @@ url_t* parse_url(char* paInput_url)
 //    printf("argv[1]:\t%s\n", paInput_url);
 #endif // DEBUG
 
-    status = strcpy_s(pIn_url, MAX_HOST_LEN*sizeof(char), (const char*)paInput_url);
-    err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
+    err_check((strcpy_s(pIn_url, MAX_HOST_LEN * sizeof(char), (const char*)paInput_url)) != SUCCESS, 
+              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     // Removes http:// from URL
     remove_scheme(pIn_url, MAX_HOST_LEN * sizeof(char));
@@ -276,8 +285,7 @@ url_t* parse_url(char* paInput_url)
     }
     else if (pIn_url[0] == '?' || pIn_url[0] == '#') // path omitted
     {
-        status = strcpy_s(pUrl_struct->path, MAX_REQUEST_LEN * sizeof(char), "/");
-        err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
+        err_check((strcpy_s(pUrl_struct->path, MAX_REQUEST_LEN * sizeof(char), "/")) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 #ifdef DEBUG
         printf("path:\t\t%s\n", pUrl_struct->path);
 #endif // DEBUG
@@ -285,11 +293,10 @@ url_t* parse_url(char* paInput_url)
     else
     {
 #ifndef DEBUG
-        err_check(true, "malformed URL", __FILE__, __FUNCTION__, __LINE__);
         print_usage();
 #ifndef NO_QUIT
         exit(1);
-#endif // NO_QUITf
+#endif // NO_QUIT
 #else
         printf("malformed URL\nExiting...\n");
         printf("substring\t%s\n", pIn_url);
@@ -316,10 +323,9 @@ url_t* parse_url(char* paInput_url)
     // ----------------------------------------------
     if (pIn_url[0] == '#') // path omitted
     {
-        status = strcpy_s(pUrl_struct->fragment, FRAG_SIZE, pIn_url);
-        err_check(status != SUCCESS, "strcpy_s()", __FILE__, __FUNCTION__, __LINE__ - 1);
+        err_check((strcpy_s(pUrl_struct->fragment, FRAG_SIZE, pIn_url)) != SUCCESS, "strcpy_s()", __FILE__, __FUNCTION__, __LINE__);
 #ifdef DEBUG
-        printf("fragment:\t%s\n", pUrl_struct->fragment);
+printf("fragment:\t%s\n", pUrl_struct->fragment);
 #endif // DEBUG
     }
 
@@ -338,14 +344,14 @@ char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written)
     err_check(status != SUCCESS, "strcpy_s()", __FILE__, __FUNCTION__, __LINE__ - 1);
 
     errno_t bytes_written = _snprintf_s(request,
-                                         MAX_REQUEST_LEN * sizeof(char),
-                                         _TRUNCATE,
-                                         format_str,
-                                         paUrl_struct->path, paUrl_struct->query, HTTP_ver, paUrl_struct->host
-                                         );
+        MAX_REQUEST_LEN * sizeof(char),
+        _TRUNCATE,
+        format_str,
+        paUrl_struct->path, paUrl_struct->query, HTTP_ver, paUrl_struct->host
+    );
 
     err_check(bytes_written >= FORMAT_SIZE || bytes_written == -1, "_snprintf_s", __FILE__, __FUNCTION__, __LINE__ - 1);
-    *paBytes_written = (int32_t) bytes_written + 1; // add null char
+    *paBytes_written = (int32_t)bytes_written + 1; // add null char
 #ifdef DEBUG
     printf("%s\n", request);
 #endif // DEBUG
@@ -356,32 +362,37 @@ char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written)
 
 
 // parse_links(response
-void parse_links(const char* paHtml_response, char* apBase_url)
+int32_t parse_links(const char* paHtml_response, char* apBase_url)
 {
     // create new parser object
     HTMLParserBase* parser = new HTMLParserBase;
+    uint32_t len;
 
-    // char baseUrl[] = "http://www.tamu.edu";		// where this page came from; needed for construction of relative links
-    uint32_t len = strlen(paHtml_response);
-    err_check(len == NULL, "strlen()", __FILE__, __FUNCTION__, __LINE__ - 1);
+    //char baseUrl[] = "http://www.tamu.edu";		// where this page came from; needed for construction of relative links
+    //char baseUrl[] = "http://www.washington.edu/";
+    //apBase_url = baseUrl;
+    
+    err_check((len = strlen(paHtml_response)) == 0, "strlen()", __FILE__, __FUNCTION__, __LINE__);
 
-    int nLinks;
+    int32_t nLinks;
     char* linkBuffer = parser->Parse((char*)paHtml_response, len, apBase_url, (int)strlen(apBase_url), &nLinks);
 
     // check for errors indicated by negative values
     if (nLinks < 0)
         nLinks = 0;
-
+#ifdef DEBUG
     printf("Found %d links:\n", nLinks);
 
-    // print each URL; these are NULL-separated C strings
+     print each URL; these are NULL-separated C strings
     for (int i = 0; i < nLinks; i++)
     {
         printf("%s\n", linkBuffer);
         linkBuffer += strlen(linkBuffer) + 1;
     }
+#endif // DEBUG
 
     delete parser;		// this internally deletes linkBuffer
+    return nLinks;
 }
 
 int32_t parse_response(const char* paResponse, url_t* paUrl_struct)
@@ -389,56 +400,86 @@ int32_t parse_response(const char* paResponse, url_t* paUrl_struct)
     char* pHeader;
     char* pBody;
     char* pIs_valid;
+    char* pTmp;
     errno_t status;
+    int32_t http_status_code = -1;
     char base_url[MAX_HOST_LEN];
-   
-    // need to split response into header and body
-    // look for /r/n/r/n
 
-    pHeader = strstr((char*)paResponse, "\r\n\r\n<html>");
-    pBody = pHeader + strlen("\r\n\r\n");
+    printf("\tVerifying header... ");
 
-    *pHeader = 0;
-    pHeader = (char*) paResponse;
 #ifdef DEBUG
     printf("%s\n", pHeader);
 #endif // DEBUG
-    
-    if ( strstr(pHeader, "HTTP/1.0 2") != NULL || 
-         strstr(pHeader, "HTTP/1.1 2") != NULL )
-    {   // valid response 
-        // print response
-        // search links
-        // print num links
-        // print time
-    
-    }
-    else //if (strstr(pHeader, "HTTP/1.0 4") != NULL || strstr(pHeader, "HTTP/1.1 4") != NULL)
-    {   // invalid response
-        // print response
-        // omit search links
-        // print time
-    }
 
-    
-    //if (pIs_valid != NULL)
+    // Check for valid HTTP header
+    if (strstr((char*)paResponse, "HTTP/1.0") || strstr((char*)paResponse, "HTTP/1.1"))
     {
-        status = strcpy_s(base_url, MAX_HOST_LEN*sizeof(char), paUrl_struct->host);
-        err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
-
-        status = strcat_s(base_url, MAX_HOST_LEN * sizeof(char), paUrl_struct->path);
-        err_check(status != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__ - 1);
-
-        // run the HTML parser 
-#ifdef DEBUG
-        printf("base_url: %s\n", base_url);
-#endif // DEBUG
-        parse_links(paResponse, base_url);
-        // print everything else
+        // check for HTTP header & split header-body
+        pHeader = strstr((char*)paResponse, "\r\n\r\n");
+        if (pHeader)
+        {
+            pBody = pHeader + strlen("\r\n\r\n");
+            *pHeader = NULL;
+            pHeader = (char*)paResponse;
+        }
+        else
+        {
+            printf("failed with invalid HTTP header");
+#ifndef NO_QUIT
+            exit(1);
+#else   
+            return NULL;
+#endif // NO_QUIT
+        }
+    }
+    else 
+    {   
+        printf("failed with non-HTTP header\n");
+#ifndef NO_QUIT
+        exit(1);
+#else   
+        return NULL;
+#endif // NO_QUIT
     }
 
+    // Print the links from the HTML parser
+    // pTmp points to status code location
+    pTmp = pHeader + strlen("HTTP/1.0 ");
+    if (isdigit(*pTmp))
+    {
+        http_status_code = atoi(pTmp);
+    }
+    else
+    {
+        printf("failed parsing http response status\n");
+#ifndef NO_QUIT
+        exit(1);
+#else   
+        return NULL;
+#endif // NO_QUIT
+    }
 
-    // print HTTP_response
+    printf("status code %d\n", http_status_code);
+
+    if (http_status_code >= 200 && http_status_code <= 299)
+    {   // Success
+        // Parse the links on the page
+        printf("      + Parsing Page... ");
+        clock_t time_start, time_stop;
+        
+        err_check((strcpy_s(base_url, MAX_HOST_LEN * sizeof(char), "http://"))          != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+        err_check((strcat_s(base_url, MAX_HOST_LEN * sizeof(char), paUrl_struct->host)) != SUCCESS, "strcat()", __FILE__, __FUNCTION__, __LINE__);
+        err_check((strcat_s(base_url, MAX_HOST_LEN * sizeof(char), paUrl_struct->path)) != SUCCESS, "strcat()", __FILE__, __FUNCTION__, __LINE__);
+        
+        time_start = clock();
+        int32_t num_links = parse_links(pBody, base_url);
+        time_stop = clock();
+
+        printf("done in %d ms with %d links\n", time_stop - time_start, num_links);
+    }
+    
+    printf("\n----------------------------------------\n");
+    printf("%s\n", pHeader);
 
     return 0;
 }
