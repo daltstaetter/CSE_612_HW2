@@ -1,12 +1,18 @@
 #pragma once
 
+/* HW1-1
+ * url_parser.h: This parses the input URL to create the GET request
+ *
+ * Date: 8/29/2019
+ * Author: Dalton Altstaetter
+ */
+
 #include "pch.h"
 
 #define INVALID_URL     -1
 #define SUCCESS         0
 
 #define FRAG_SIZE 64
-
 
 typedef struct url {
 

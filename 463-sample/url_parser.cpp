@@ -1,4 +1,9 @@
-
+/* HW1-1
+ * url_parser.cpp: This parses the input URL to create the GET request
+ *
+ * Date: 8/29/2019
+ * Author: Dalton Altstaetter
+ */
 
 #include "pch.h"
 #include "url_parser.h"

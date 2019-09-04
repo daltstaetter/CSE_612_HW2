@@ -1,15 +1,16 @@
-/* main.cpp
+/* HW1-1
+ * main.cpp
  * CSCE 463 Sample Code
  * by Dmitri Loguinov
  *
- * 8/29/2019
+ * Date: 8/29/2019
  * Modified by Dalton Altstaetter
- * for HW1-1
+ * with permission for HW1-1
  */
+
 #include "pch.h"
 
 #define SINGLE_URL_INPUT 2
-
 
 // function inside winsock.cpp
 char* send_request(url_t* paUrl_struct, const char* paRequest, const int32_t aRequest_size);

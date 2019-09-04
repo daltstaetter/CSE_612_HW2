@@ -1,5 +1,12 @@
 #pragma once
 
+// HW1-1
+// HTMLParserBase.h - Parses HTTP response for links and counts them
+// Date: 9/3/2019
+// Created by: Dmitri Loguinov
+// Used by Dalton Altstaetter with permission
+
+
 #ifdef _WIN64
 #ifdef _DEBUG
 #pragma comment (lib, "HTMLParser_debug_x64.lib")

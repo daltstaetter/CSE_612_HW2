@@ -2,6 +2,15 @@
  * CPSC 463 Sample Code 
  * by Dmitri Loguinov
  */
+
+/* HW1-1
+ * winsock.cpp: Handles the network/socket communication
+ *
+ * Date: 8/29/2019
+ * Modified by Dalton Altstaetter with permission
+ */
+
+
 #include "pch.h"
 #pragma comment(lib, "ws2_32.lib")
 
