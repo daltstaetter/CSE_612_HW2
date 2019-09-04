@@ -5,12 +5,14 @@
 #pragma comment (lib, "HTMLParser_debug_x64.lib")
 #else
 #pragma comment (lib, "HTMLParser_release_x64.lib")
+//#pragma comment (lib, "HTMLParser_release_x64_new.lib")
 #endif
 #else
 #ifdef _DEBUG
 #pragma comment (lib, "HTMLParser_debug_win32.lib")
 #else
 #pragma comment (lib, "HTMLParser_release_win32.lib")
+//#pragma comment (lib, "HTMLParser_release_win32_new.lib")
 #endif
 #endif
 

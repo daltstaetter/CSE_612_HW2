@@ -130,6 +130,16 @@ errno_t set_port(char* paSub_url, uint16_t* pPort)
                 
                 err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), paSub_url + sizeof(char) * i)) != SUCCESS, 
                           "strcpy()", __FILE__, __FUNCTION__,__LINE__);
+
+                // zero is an invalid port number
+                if (*pPort == 0) 
+                {
+                    printf("failed with invalid port\n");
+#ifndef NO_QUIT
+                    exit(1);
+#endif // NO_QUIT
+                }
+
                 return SUCCESS;
             }
             else if (paSub_url[1] == '-')
@@ -145,14 +155,6 @@ errno_t set_port(char* paSub_url, uint16_t* pPort)
         {
             //paSub_url[0] = 0;
         }
-    }
-
-    if (*pPort == 0) // zero is an invalid port number
-    {
-        printf("failed with invalid port\n");
-#ifndef NO_QUIT
-        exit(1);
-#endif // NO_QUIT
     }
 
     return -1;
@@ -207,8 +209,6 @@ char* set_query(char* paSub_url, char* pQuery)
 url_t* parse_url(char* paInput_url)
 {
     char pIn_url[MAX_HOST_LEN];
-    char* pSub_str;
-    char* host_end;
 
     url_t* pUrl_struct = (url_t*) malloc(sizeof(url_t));
     err_check(pUrl_struct == NULL, "pUrl_struct malloc()", __FILE__, __FUNCTION__, __LINE__ - 1);
@@ -248,7 +248,6 @@ url_t* parse_url(char* paInput_url)
 
     if (strlen(pUrl_struct->host) == 0)
     {
-        printf("Invalid host/IP\n");
         print_usage();
 #ifndef NO_QUIT
         exit(1);
@@ -359,9 +358,6 @@ char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written)
     return request;
 }
 
-
-
-// parse_links(response
 int32_t parse_links(const char* paHtml_response, char* apBase_url)
 {
     // create new parser object
@@ -399,9 +395,7 @@ int32_t parse_response(const char* paResponse, url_t* paUrl_struct)
 {
     char* pHeader;
     char* pBody;
-    char* pIs_valid;
     char* pTmp;
-    errno_t status;
     int32_t http_status_code = -1;
     char base_url[MAX_HOST_LEN];
 

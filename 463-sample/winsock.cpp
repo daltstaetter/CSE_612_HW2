@@ -34,7 +34,7 @@ void sock_check(BOOL aTest, const char* aFile, const char* aFunction, int32_t aL
     }
 }
 
-char* read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size, uint32_t* paCurr_pos, int32_t threshold)
+char* read_socket(SOCKET* paSocket, char* paRecv_buff, uint32_t aRecv_buff_size, uint32_t* paCurr_pos, uint32_t threshold)
 {
     int32_t recv_bytes;
     char* small_buff;
@@ -64,9 +64,15 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, int32_t aRecv_buff_size, 
         if (select(0, &fd_reader, 0, &fd_exception, &timeout) > 0) // new data available; read the next segment
         {
             recv_bytes = recv(*paSocket, paRecv_buff + *paCurr_pos, aRecv_buff_size - *paCurr_pos, 0);
+            
             if (recv_bytes == SOCKET_ERROR)
             {
                 printf("failed with %d on recv\n", WSAGetLastError());
+                break;
+            }
+            else if (strstr((char*)paRecv_buff, "HTTP/1.") == NULL)
+            {   // check if response is a valid HTTP response
+                printf("failed with non-HTTP header\n");
                 break;
             }
 
@@ -211,11 +217,11 @@ char* send_request(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     printf("\tLoading... ");
     realloc_thresh = recv_buff_size / 2;
     time_start = clock();
-    recv_buff = read_socket(&sock, recv_buff, recv_buff_size, &curr_pos, realloc_thresh);
+    recv_buff = read_socket(&sock, recv_buff, RECV_BUFF_SIZE, &curr_pos, realloc_thresh);
     time_stop = clock();
 
-    sock_check(recv_buff == NULL, __FILE__, __FUNCTION__, __LINE__ - 1);
-    printf("done in %d ms with %lu bytes\n", time_stop - time_start, (unsigned long)curr_pos);
+    if (recv_buff != NULL)
+        printf("done in %d ms with %lu bytes\n", time_stop - time_start, (unsigned long)curr_pos);
 
 	// close the socket to this server; open again for the next one
 	closesocket (sock);
