@@ -1,9 +1,12 @@
 #!/bin/bash
 
-DB32="./Debug/463-sample.exe"
-DB64="./x64/Debug/463-sample.exe"
-RE32="./Release/463-sample.exe"
-RE64="./x64/Release/463-sample.exe"
+# ./test_script.sh 1 | tee DB32.txt;  ./test_script.sh 2 | tee DB64.txt; ./test_script.sh 3 | tee RE32.txt; ./test_script.sh 4 | tee RE64.txt
+#  diff DB64.txt RE64.txt | egrep -v "(ms|GMT|Tag|Cookie|www|[0-9]*)" | wc -l
+
+DB32="./Debug/hw1-1.exe"
+DB64="./x64/Debug/hw1-1.exe"
+RE32="./Release/hw1-1.exe"
+RE64="./x64/Release/hw1-1.exe"
 
 PROGRAM=$DB32
 

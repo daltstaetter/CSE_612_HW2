@@ -82,7 +82,7 @@ char* set_hostname(char* paSub_url, char* paHostname)
 void print_usage(void)
 {
     // TODO: Print the correct usage info I want
-    printf("\nUsage:\thw1.exe scheme://host[:port][/path][?query][#fragment]\n");
+    printf("\nUsage:\thw1-1.exe scheme://host[:port][/path][?query][#fragment]\n");
 #ifndef NO_QUIT
     exit(1);
 #endif // NO_QUIT

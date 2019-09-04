@@ -1,3 +1,6 @@
 *vcxproj*
 *HTMLParserTest.cpp*
 .vs*
+*.*pdb*
+*.ilk*
+*.*o*
