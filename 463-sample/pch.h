@@ -29,7 +29,6 @@
 #include "url_parser.h"
 
 //#define DEBU
-//#define NO_QUIT
-
+//#define NO_QUIT // TODO: Think I found an issue where I am exiting when I need to be returning null, I am not freeing memory that I have allocated or need some way to do this. I need some way to gracefully exit
 
 #endif //PCH_H
