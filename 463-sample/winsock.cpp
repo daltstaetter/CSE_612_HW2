@@ -122,8 +122,7 @@ char* send_request(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     clock_t time_start;
     clock_t time_stop;
     uint32_t curr_pos = 0;
-    uint32_t recv_buff_size = 8192;
-    char* recv_buff = (char*) malloc(recv_buff_size * sizeof(char));
+    char* recv_buff = (char*) malloc(RECV_BUFF_SIZE * sizeof(char));
 
     //Initialize WinSock; once per program run
     WORD wVersionRequested = MAKEWORD(2, 2);
@@ -215,7 +214,7 @@ char* send_request(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     
     // receive HTTP response
     printf("\tLoading... ");
-    realloc_thresh = recv_buff_size / 2;
+    realloc_thresh = RECV_BUFF_SIZE / 2;
     time_start = clock();
     recv_buff = read_socket(&sock, recv_buff, RECV_BUFF_SIZE, &curr_pos, realloc_thresh);
     time_stop = clock();

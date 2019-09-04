@@ -5,7 +5,7 @@
 #define FORMAT_SIZE 512
 #define HTTP_PORT   80
 
-void err_check(BOOL aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num)
+void err_check(int32_t aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
     const char* fname = ((char*) aFile - 1);
     const char* exit_test;
@@ -368,7 +368,7 @@ int32_t parse_links(const char* paHtml_response, char* apBase_url)
     //char baseUrl[] = "http://www.washington.edu/";
     //apBase_url = baseUrl;
     
-    err_check((len = strlen(paHtml_response)) == 0, "strlen()", __FILE__, __FUNCTION__, __LINE__);
+    err_check((len = (uint32_t)strlen(paHtml_response)) == 0, "strlen()", __FILE__, __FUNCTION__, __LINE__);
 
     int32_t nLinks;
     char* linkBuffer = parser->Parse((char*)paHtml_response, len, apBase_url, (int)strlen(apBase_url), &nLinks);
