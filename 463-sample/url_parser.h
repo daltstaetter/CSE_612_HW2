@@ -30,11 +30,11 @@ typedef struct url {
 void print_usage(void);
 url_t* parse_url(char* paInput_url);
 char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written);
-int32_t parse_response(const char* paResponse, url_t* paUrl_struct);
+void parse_response(const char* paResponse, url_t* paUrl_struct);
 
 void remove_scheme(char* paIn_url, uint16_t max_len);
-char* set_hostname(char* paSub_url, char* paHostname);
-errno_t set_port(char* paSub_url, uint16_t* pPort);
+void set_hostname(char* paSub_url, char* paHostname);
+void set_port(char* paSub_url, uint16_t* pPort);
 char* set_path(char* paSub_url, char* pPath);
 char* set_query(char* paSub_url, char* pQuery);
 
