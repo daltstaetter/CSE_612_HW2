@@ -118,6 +118,7 @@ char* get_char(char* paSub_url, const int8_t delimiter)
 errno_t set_port(char* paSub_url, uint16_t* pPort)
 {
     uint32_t port;
+	errno_t result = -1;
 
     if (':' == paSub_url[0])
     {
@@ -129,7 +130,7 @@ errno_t set_port(char* paSub_url, uint16_t* pPort)
                 port = (uint32_t)atoi(&paSub_url[1]); // start
 
                 // check port range to be 1 - 65535
-                if (port == 0 || port > 2^16-1) 
+                if (port == 0 || port > UINT16_MAX)
                 {
                     printf("failed with invalid port\n");
 #ifndef NO_QUIT
@@ -146,6 +147,7 @@ errno_t set_port(char* paSub_url, uint16_t* pPort)
                 err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), paSub_url + sizeof(char) * i)) != SUCCESS, 
                           "strcpy()", __FILE__, __FUNCTION__,__LINE__);
 
+				result = SUCCESS;
                 return SUCCESS;
             }
             else if (paSub_url[1] == '-')
@@ -163,7 +165,7 @@ errno_t set_port(char* paSub_url, uint16_t* pPort)
         }
     }
 
-    return -1;
+	return result;
 }
 
 // pSub_str = set_path(pSub_str, pUrl_struct->path);

@@ -21,9 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <windows.h>
-
-#include "DNS.h"
-#include "cpu.h"
+#include <time.h>
 
 #include "HTMLParserBase.h"
 #include "url_parser.h"

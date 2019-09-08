@@ -159,8 +159,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="cpu.cpp" />
-    <ClCompile Include="DNS.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -172,8 +170,6 @@
     <ClCompile Include="winsock.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cpu.h" />
-    <ClInclude Include="DNS.h" />
     <ClInclude Include="HTMLParserBase.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="url_parser.h" />
