@@ -14,10 +14,10 @@
 #include "pch.h"
 #pragma comment(lib, "ws2_32.lib")
 
-
-#define SEND_TIMEOUT 5000
-#define RECV_TIMEOUT 10000
-#define RECV_BUFF_SIZE 8192
+#define SEND_TIMEOUT		5000
+#define RECV_TIMEOUT		10000
+#define RECV_BUFF_SIZE		8192
+#define CONNECTION_CLOSED	0
 
 void sock_check(BOOL aTest, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
@@ -47,6 +47,7 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, uint32_t aRecv_buff_size,
 {
     int32_t recv_bytes;
     char* small_buff;
+	bool isData_available;
     //---------------------------------------
     // Used for the select function
     //---------------------------------------
@@ -70,7 +71,8 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, uint32_t aRecv_buff_size,
     //---------------------------------------
     while (true)
     {
-        if (select(0, &fd_reader, 0, &fd_exception, &timeout) > 0) // new data available; read the next segment
+		isData_available = (bool) (select(0, &fd_reader, 0, &fd_exception, &timeout) > 0 );
+        if (isData_available) // new data available; read the next segment
         {
             recv_bytes = recv(*paSocket, paRecv_buff + *paCurr_pos, aRecv_buff_size - *paCurr_pos, 0);
             
@@ -79,39 +81,33 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, uint32_t aRecv_buff_size,
                 printf("failed with %d on recv\n", WSAGetLastError());
                 break;
             }
-            else if (strstr((char*)paRecv_buff, "HTTP/1.") == NULL)
-            {   // check if response is a valid HTTP response
-                printf("failed with non-HTTP header\n");
-                break;
-            }
-
-            if (recv_bytes == 0) // connection closed
+            else if (recv_bytes == CONNECTION_CLOSED) // connection closed
             {
                 paRecv_buff[*paCurr_pos] = 0; // Null Terminate recv_buff
-                return paRecv_buff;
-                //return SUCCESS; // normal completion
+                return paRecv_buff; // SUCCESS - normal completion
             }
-            
-            // update position
-            *paCurr_pos += recv_bytes;
-            
-            // adjust where the next recv goes
-            if (aRecv_buff_size - *paCurr_pos < min(threshold, RECV_BUFF_SIZE))
-            {
-                small_buff = paRecv_buff;
-                paRecv_buff = (char*) malloc(aRecv_buff_size*sizeof(char) * 2);
-                
-                aRecv_buff_size = aRecv_buff_size * sizeof(char) * 2;
-                threshold = aRecv_buff_size / 2;
+			else // received valid response
+			{
+				// update position in buffer
+				*paCurr_pos += recv_bytes;
 
-                memcpy_s(paRecv_buff, aRecv_buff_size, small_buff, aRecv_buff_size / 2);
-                
-                free(small_buff);
-            }
+				// check if I need to realloc more space 
+				if (aRecv_buff_size - *paCurr_pos < min(threshold, RECV_BUFF_SIZE))
+				{
+					small_buff = paRecv_buff;
+					paRecv_buff = (char*)malloc(aRecv_buff_size * sizeof(char) * 2);
+
+					aRecv_buff_size = aRecv_buff_size * sizeof(char) * 2;
+					threshold = aRecv_buff_size / 2;
+
+					memcpy_s(paRecv_buff, aRecv_buff_size, small_buff, aRecv_buff_size / 2);
+					free(small_buff);
+				}
+			}
         }
-        else // TIMEOUT or SOCKET_ERROR occurred 
+        else // TIMEOUT occurred 
         {
-            printf("failed with %d on recv\n", WSAGetLastError());
+            printf("failed with timeout on recv\n");
             break;
         }
     }
