@@ -96,11 +96,13 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, uint32_t aRecv_buff_size,
                 {
                     small_buff = paRecv_buff;
                     paRecv_buff = (char*)malloc(aRecv_buff_size * sizeof(char) * 2);
-
-                    aRecv_buff_size = aRecv_buff_size * sizeof(char) * 2;
-                    threshold = aRecv_buff_size / 2;
-
-                    memcpy_s(paRecv_buff, aRecv_buff_size, small_buff, aRecv_buff_size / 2);
+                    
+                    // update buffer sizes
+                    threshold = aRecv_buff_size * sizeof(char);
+                    aRecv_buff_size = threshold * 2;
+                    
+                    // copy data to new buffer and free the old buffer
+                    memcpy_s(paRecv_buff, aRecv_buff_size, small_buff, threshold);
                     free(small_buff);
                 }
             }
@@ -220,11 +222,12 @@ char* send_request(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     // receive HTTP response
     printf("\tLoading... ");
     realloc_thresh = RECV_BUFF_SIZE / 2;
+    
     time_start = clock();
     recv_buff = read_socket(&sock, recv_buff, RECV_BUFF_SIZE, &curr_pos, realloc_thresh);
     time_stop = clock();
 
-    if (recv_buff != NULL)
+    if (recv_buff)
         printf("done in %d ms with %lu bytes\n", time_stop - time_start, (unsigned long)curr_pos);
 
     // close the socket to this server; open again for the next one
