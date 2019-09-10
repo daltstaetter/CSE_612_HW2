@@ -194,7 +194,7 @@ void set_path(char paSub_url[MAX_URL_LEN], char* pPath)
         // null-term the match w/in pPath
         *char_search = 0;
     }
-    else if (paSub_url[0] == '?' || paSub_url[0] == '#') // path omitted, set to default value of '/'
+    else if (paSub_url[0] == '?' || paSub_url[0] == '#' || paSub_url[0] == NULL) // path omitted, set to default value of '/'
         err_check((strcpy_s(pPath, MAX_REQUEST_LEN * sizeof(char), "/")) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
     else // error: malformed input
         print_usage();
