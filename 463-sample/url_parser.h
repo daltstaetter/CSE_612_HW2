@@ -28,17 +28,21 @@ typedef struct url {
 } url_t;
 
 void print_usage(void);
+void set_defaults(url_t* pUrl_struct, char  pIn_url[256], char* paInput_url);
 url_t* parse_url(char* paInput_url);
+
 char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written);
 void parse_response(const char* paResponse, url_t* paUrl_struct);
 
-void remove_scheme(char* paIn_url, uint16_t max_len);
-void set_hostname(char* paSub_url, char* paHostname);
-void set_port(char* paSub_url, uint16_t* pPort);
-char* set_path(char* paSub_url, char* pPath);
-char* set_query(char* paSub_url, char* pQuery);
+void set_default_params(url_t* paUrl_struct, char paIn_url[MAX_URL_LEN], char* paInput_url);
+void remove_scheme(char paIn_url[MAX_URL_LEN]);
+void set_hostname(char paSub_url[MAX_URL_LEN], char* paHostname);
+void set_port(char paSub_url[MAX_URL_LEN], uint16_t* pPort);
+void set_path(char paSub_url[MAX_URL_LEN], char* pPath);
+void set_query(char paSub_url[MAX_URL_LEN], char* pQuery);
+void set_fragment(char  pIn_url[MAX_URL_LEN], url_t* pUrl_struct);
 
 // helpers
-char* get_char(char* paSub_url, const int8_t delimiter);
+char* get_char(char paSub_url[MAX_URL_LEN], const int8_t delimiter);
 void err_check(BOOL aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num);
 

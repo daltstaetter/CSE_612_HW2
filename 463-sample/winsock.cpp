@@ -47,7 +47,7 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, uint32_t aRecv_buff_size,
 {
     int32_t recv_bytes;
     char* small_buff;
-	bool isData_available;
+    bool isData_available;
     //---------------------------------------
     // Used for the select function
     //---------------------------------------
@@ -71,7 +71,7 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, uint32_t aRecv_buff_size,
     //---------------------------------------
     while (true)
     {
-		isData_available = (bool) (select(0, &fd_reader, 0, &fd_exception, &timeout) > 0 );
+        isData_available = (bool) (select(0, &fd_reader, 0, &fd_exception, &timeout) > 0 );
         if (isData_available) // new data available; read the next segment
         {
             recv_bytes = recv(*paSocket, paRecv_buff + *paCurr_pos, aRecv_buff_size - *paCurr_pos, 0);
@@ -86,24 +86,24 @@ char* read_socket(SOCKET* paSocket, char* paRecv_buff, uint32_t aRecv_buff_size,
                 paRecv_buff[*paCurr_pos] = 0; // Null Terminate recv_buff
                 return paRecv_buff; // SUCCESS - normal completion
             }
-			else // received valid response
-			{
-				// update position in buffer
-				*paCurr_pos += recv_bytes;
+            else // received valid response
+            {
+                // update position in buffer
+                *paCurr_pos += recv_bytes;
 
-				// check if I need to realloc more space 
-				if (aRecv_buff_size - *paCurr_pos < min(threshold, RECV_BUFF_SIZE))
-				{
-					small_buff = paRecv_buff;
-					paRecv_buff = (char*)malloc(aRecv_buff_size * sizeof(char) * 2);
+                // check if I need to realloc more space 
+                if (aRecv_buff_size - *paCurr_pos < min(threshold, RECV_BUFF_SIZE))
+                {
+                    small_buff = paRecv_buff;
+                    paRecv_buff = (char*)malloc(aRecv_buff_size * sizeof(char) * 2);
 
-					aRecv_buff_size = aRecv_buff_size * sizeof(char) * 2;
-					threshold = aRecv_buff_size / 2;
+                    aRecv_buff_size = aRecv_buff_size * sizeof(char) * 2;
+                    threshold = aRecv_buff_size / 2;
 
-					memcpy_s(paRecv_buff, aRecv_buff_size, small_buff, aRecv_buff_size / 2);
-					free(small_buff);
-				}
-			}
+                    memcpy_s(paRecv_buff, aRecv_buff_size, small_buff, aRecv_buff_size / 2);
+                    free(small_buff);
+                }
+            }
         }
         else // TIMEOUT occurred 
         {
@@ -227,11 +227,11 @@ char* send_request(url_t* paUrl_struct, const char* paRequest, const int32_t aRe
     if (recv_buff != NULL)
         printf("done in %d ms with %lu bytes\n", time_stop - time_start, (unsigned long)curr_pos);
 
-	// close the socket to this server; open again for the next one
-	closesocket (sock);
+    // close the socket to this server; open again for the next one
+    closesocket (sock);
 
-	// call cleanup when done with everything and ready to exit program
-	WSACleanup ();
+    // call cleanup when done with everything and ready to exit program
+    WSACleanup ();
 
     return recv_buff;
 }

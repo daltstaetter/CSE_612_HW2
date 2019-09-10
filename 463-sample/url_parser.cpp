@@ -17,22 +17,21 @@ void exit_process()
 #endif // NO_QUIT
 }
 
-
 void err_check(int32_t aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
-    const char* fname = ((char*) aFile - 1);
+    const char* fname = ((char*)aFile - 1);
     const char* exit_test;
-    char* aFile_end = (char*) aFile + strlen(aFile);
+    char* aFile_end = (char*)aFile + strlen(aFile);
 
     if (aTest)
     {
         do
         {
-            fname = get_char((char*)fname+1, '.');
+            fname = get_char((char*)fname + 1, '.');
             exit_test = get_char((char*)fname + 1, '.');
         } while (*exit_test != 0 && fname < aFile_end);
 
-        while ( *(fname - 1) != '\\' && fname >= aFile)
+        while (*(fname - 1) != '\\' && fname >= aFile)
             fname--;
 
         if (fname < aFile || fname > aFile_end)
@@ -43,14 +42,14 @@ void err_check(int32_t aTest, const char* aMsg, const char* aFile, const char* a
     }
 }
 
-void remove_scheme(char* paIn_url, uint16_t max_len)
-{
+void remove_scheme(char paIn_url[MAX_URL_LEN])
+{   // Removes 'http://' from URL
     char* pTemp_str;
-    
+
     pTemp_str = strstr(paIn_url, "http://");
 
     if (pTemp_str) // it matched HTTP
-        err_check((strcpy_s(paIn_url, max_len, (pTemp_str + strlen("http://")))) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+        err_check((strcpy_s(paIn_url, MAX_URL_LEN *sizeof(char), (pTemp_str + strlen("http://")))) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
     else
     {
         printf("failed with invalid scheme\n");
@@ -58,14 +57,37 @@ void remove_scheme(char* paIn_url, uint16_t max_len)
     }
 }
 
-void set_hostname(char* paSub_url, char* paHostname)
+void print_usage(void)
+{
+    printf("\nUsage:\thw1-1.exe scheme://host[:port][/path][?query][#fragment]\n");
+    exit_process();
+}
+
+void set_hostname(char paSub_url[MAX_URL_LEN], char* paHostname)
 {
     // copy input url into paHostname
+    char* host_end = get_char(paSub_url, '#');
+
+    if (host_end > get_char(paSub_url, '?'))
+        host_end = get_char(paSub_url, '?');
+
+    if (host_end > get_char(paSub_url, '/'))
+        host_end = get_char(paSub_url, '/');
+
+    if (host_end > get_char(paSub_url, ':'))
+        host_end = get_char(paSub_url, ':');
+
+    if (host_end && (host_end - paSub_url) >= MAX_HOST_LEN*sizeof(char))
+    {
+        printf("hostname exceeds max host length\n");
+        exit_process();
+    }
+
     err_check((strcpy_s(paHostname, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url)) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
     // host_end points to where path ends in paHostname
     // if no match return null char location in string, i.e. end of string
-    char* host_end = get_char(paHostname, '#');
+    host_end = get_char(paHostname, '#');
 
     if (host_end > get_char(paHostname, '?'))
         host_end = get_char(paHostname, '?');
@@ -86,10 +108,10 @@ void set_hostname(char* paSub_url, char* paHostname)
         print_usage();
 }
 
-void print_usage(void)
+void set_fragment(char paIn_url[MAX_URL_LEN], url_t* paUrl_struct)
 {
-    printf("\nUsage:\thw1-1.exe scheme://host[:port][/path][?query][#fragment]\n");
-    exit_process();
+    if (paIn_url[0] == '#') // path omitted
+        err_check((strcpy_s(paUrl_struct->fragment, FRAG_SIZE, paIn_url)) != SUCCESS, "strcpy_s()", __FILE__, __FUNCTION__, __LINE__);
 }
 
 /*
@@ -97,7 +119,7 @@ void print_usage(void)
 *   Goal: Find substring index in  null-terminated string paSub_url
 *         -if no match (search returns NULL), return location of null char
 */
-char* get_char(char* paSub_url, const int8_t delimiter)
+char* get_char(char paSub_url[MAX_URL_LEN], const int8_t delimiter)
 {
     char* char_index;
     char_index = strchr(paSub_url, delimiter);
@@ -108,87 +130,107 @@ char* get_char(char* paSub_url, const int8_t delimiter)
         return char_index;
 }
 
-
 /*
 *
 *  
 *        
 */
-void set_port(char* paSub_url, uint16_t* pPort)
+void set_port(char paSub_url[MAX_URL_LEN], uint16_t* pPort)
 {
-    uint32_t port;
+    uint32_t port; // used to check if port w/in range 1-65535
 
     // paSub_url should take form ':[port]'
-    if (strlen(paSub_url) >= 2)
+    if (paSub_url[0] == ':')
     {
-        if (isdigit(paSub_url[1]))
+        if (strlen(paSub_url) >= 2)
         {
-            // keep in host byte order
-            port = (uint32_t)atoi(&paSub_url[1]); // start
-
-            // check port range to be 1 - 65535
-            if (port == 0 || port > UINT16_MAX)
+            if (isdigit(paSub_url[1]))
             {
+                // keep in host byte order
+                port = (uint32_t)atoi(&paSub_url[1]); // start
+                
+                // check port range to be 1 - 65535
+                if (port == 0 || port > UINT16_MAX)
+                {
+                    printf("failed with invalid port\n");
+                    exit_process();
+                }
+                *pPort = (uint16_t)port;
+                
+                // move along the string & find first non-numeric index
+                uint32_t i = 1;
+                while (isdigit(paSub_url[i]))
+                    i++;
+                
+                err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), paSub_url + sizeof(char) * i)) != SUCCESS,
+                    "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+            }
+            else if (paSub_url[1] == '-')
+            {
+                // check for negative numbers
                 printf("failed with invalid port\n");
                 exit_process();
             }
-            *pPort = (uint16_t) port;
-                
-            // move along the string & find first non-numeric index
-            uint32_t i = 1;
-            while (isdigit(paSub_url[i]))
-                i++; 
-                
-            err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), paSub_url + sizeof(char) * i)) != SUCCESS, 
-                        "strcpy()", __FILE__, __FUNCTION__,__LINE__);
-        }
-        else if (paSub_url[1] == '-')
-        {
-            // check for negative numbers
-            printf("failed with invalid port\n");
-            exit_process();
         }
     }
 }
 
-// pSub_str = set_path(pSub_str, pUrl_struct->path);
-char* set_path(char* paSub_url, char* pPath)
+void set_path(char paSub_url[MAX_URL_LEN], char* pPath)
 {
-    err_check((strcpy_s(pPath, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url)) != SUCCESS, 
-              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+    if (paSub_url[0] == '/')
+    {
+        err_check((strcpy_s(pPath, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url)) != SUCCESS,
+                  "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
-    char* char_search = get_char(pPath, '#');
+        char* char_search = get_char(pPath, '#');
 
-    if (char_search > get_char(pPath, '?'))
-        char_search = get_char(pPath, '?');
+        if (char_search > get_char(pPath, '?'))
+            char_search = get_char(pPath, '?');
 
-    // Keep the latter substring for additional parsing
-    err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*)char_search)) != SUCCESS, 
-              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+        // Keep the latter substring for additional parsing
+        err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*)char_search)) != SUCCESS,
+                  "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 
-    // null-term the match w/in pPath
-    *char_search = 0;
-
-    // points to remaining substring
-    return paSub_url;
+        // null-term the match w/in pPath
+        *char_search = 0;
+    }
+    else if (paSub_url[0] == '?' || paSub_url[0] == '#') // path omitted, set to default value of '/'
+        err_check((strcpy_s(pPath, MAX_REQUEST_LEN * sizeof(char), "/")) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+    else // error: malformed input
+        print_usage();
 }
 
-char* set_query(char* paSub_url, char* pQuery)
+void set_query(char paSub_url[MAX_URL_LEN], char* pQuery)
 {
-    err_check((strcpy_s(pQuery, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url)) != SUCCESS, 
-              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+    if (paSub_url[0] == '?')
+    {
+        err_check((strcpy_s(pQuery, MAX_HOST_LEN * sizeof(char), (const char*)paSub_url)) != SUCCESS,
+            "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+        
+        char* char_search = get_char(pQuery, '#');
+        
+        // Keep the latter substring for additional parsing
+        err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*)char_search)) != SUCCESS,
+            "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+        
+        // null-term the match w/in pQuery
+        *char_search = 0;
+    }
 
-    char* char_search = get_char(pQuery, '#');
+}
 
-    // Keep the latter substring for additional parsing
-    err_check((strcpy_s(paSub_url, MAX_HOST_LEN * sizeof(char), (const char*)char_search)) != SUCCESS, 
-              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
-
-    // null-term the match w/in pQuery
-    *char_search = 0;
-
-    // points to remaining substring
-    return paSub_url;
+void set_default_params(url_t* paUrl_struct, char  paIn_url[MAX_URL_LEN], char* paInput_url)
+{
+    paUrl_struct->port = HTTP_PORT; // assume port 80 if not specified
+    
+    err_check((strcpy_s(paUrl_struct->path, MAX_URL_LEN * sizeof(char), "/")) != SUCCESS,
+        "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+    
+    paUrl_struct->query[0] = 0;
+    paUrl_struct->fragment[0] = 0;
+    
+    err_check((strcpy_s(paIn_url, MAX_URL_LEN * sizeof(char), (const char*)paInput_url)) != SUCCESS,
+        "strcpy()", __FILE__, __FUNCTION__, __LINE__);
 }
 
 /*
@@ -198,25 +240,23 @@ char* set_query(char* paSub_url, char* pQuery)
 */
 url_t* parse_url(char* paInput_url)
 {
-    char pIn_url[MAX_HOST_LEN];
+    if (strlen(paInput_url) >= MAX_URL_LEN)
+    {
+        printf("url exceeds max url length\n");
+        exit_process();
+    }
 
     url_t* pUrl_struct = (url_t*) malloc(sizeof(url_t));
     err_check(pUrl_struct == NULL, "pUrl_struct malloc()", __FILE__, __FUNCTION__, __LINE__ - 1);
 
-    // Set default values in case we return early
-    pUrl_struct->port = HTTP_PORT; // assume port 80 if not specified
-    
-    err_check((strcpy_s(pUrl_struct->path, MAX_REQUEST_LEN * sizeof(char), "/")) != SUCCESS, 
-              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+    char pIn_url[MAX_URL_LEN];
 
-    pUrl_struct->query[0] = 0;
-    pUrl_struct->fragment[0] = 0;
-
-    err_check((strcpy_s(pIn_url, MAX_HOST_LEN * sizeof(char), (const char*)paInput_url)) != SUCCESS, 
-              "strcpy()", __FILE__, __FUNCTION__, __LINE__);
+    // Set default values in case parameters are omitted
+    // fails if strlen(paInput_url) >= 256
+    set_default_params(pUrl_struct, pIn_url, paInput_url);
 
     // Removes 'http://' from URL
-    remove_scheme(pIn_url, MAX_HOST_LEN * sizeof(char));
+    remove_scheme(pIn_url);
 
     //-------------------------------------------------------------
     // Set host/IP
@@ -224,40 +264,27 @@ url_t* parse_url(char* paInput_url)
     //-------------------------------------------------------------
     set_hostname(pIn_url, pUrl_struct->host);
 
-    // ----------------------------------------------
-    // Parse the port
-    // ----------------------------------------------
-    // parse_port(pIn_url, pUrl_struct);
-    if (pIn_url[0] == ':')
-        set_port(pIn_url, &(pUrl_struct->port));
+    set_port(pIn_url, &(pUrl_struct->port));
 
     // ----------------------------------------------
     // Parse the path: could be explicit or omitted (set to '/')
     // ----------------------------------------------
-    // parse_path(pIn_url, pUrl_struct);
-    if (pIn_url[0] == '/')
-        set_path(pIn_url, pUrl_struct->path);
-    else if (pIn_url[0] == '?' || pIn_url[0] == '#') // path omitted
-        err_check((strcpy_s(pUrl_struct->path, MAX_REQUEST_LEN * sizeof(char), "/")) != SUCCESS, "strcpy()", __FILE__, __FUNCTION__, __LINE__);
-    else
-        print_usage();
+    set_path(pIn_url, pUrl_struct->path);
 
     // ----------------------------------------------
-    // Parse the query: could be explicit or omitted (set to '/')
+    // Parse the query: could be explicit or omitted
     // ----------------------------------------------
-    // parse_query(pIn_url, pUrl_struct);
-    if (pIn_url[0] == '?')
-        set_query(pIn_url, pUrl_struct->query);
+    set_query(pIn_url, pUrl_struct->query);
 
     // ----------------------------------------------
-    // Parse the fragment: Not used
+    // Parse the fragment: Not used - set to NULL
     // ----------------------------------------------
-    // parse_fragment(pIn_url, pUrl_struct);
-    if (pIn_url[0] == '#') // path omitted
-        err_check((strcpy_s(pUrl_struct->fragment, FRAG_SIZE, pIn_url)) != SUCCESS, "strcpy_s()", __FILE__, __FUNCTION__, __LINE__);
+    set_fragment(pIn_url, pUrl_struct);
 
     return pUrl_struct;
 }
+
+
 
 //TODO: Free every thing i did a malloc for
 char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written)
@@ -274,7 +301,10 @@ char* create_get_request(url_t* paUrl_struct, int32_t* paBytes_written)
         MAX_REQUEST_LEN * sizeof(char),
         _TRUNCATE,
         format_str,
-        paUrl_struct->path, paUrl_struct->query, HTTP_ver, paUrl_struct->host
+        paUrl_struct->path, 
+        paUrl_struct->query, 
+        HTTP_ver, 
+        paUrl_struct->host
     );
 
     err_check(bytes_written >= FORMAT_SIZE || bytes_written == -1, "_snprintf_s", __FILE__, __FUNCTION__, __LINE__ - 1);
