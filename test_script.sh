@@ -1,20 +1,16 @@
 #!/bin/bash
 
-DB32="./Debug/hw1-1.exe"
-DB64="./x64/Debug/hw1-1.exe"
-RE32="./Release/hw1-1.exe"
-RE64="./x64/Release/hw1-1.exe"
-
-PROGRAM=$DB32
+TMP_EXE=./local_exe
+PROGRAM=$TMP_EXE/hw1-32db.exe
 
 if   [[ $1 -eq 1 ]]; then
-	PROGRAM=$DB32
+	PROGRAM=$TMP_EXE/hw1-32db.exe
 elif [[ $1 -eq 2 ]]; then
-	PROGRAM=$DB64
+	PROGRAM=$TMP_EXE/hw1-64db.exe
 elif [[ $1 -eq 3 ]]; then
-	PROGRAM=$RE32
+	PROGRAM=$TMP_EXE/hw1-32rel.exe
 elif [[ $1 -eq 4 ]]; then
-	PROGRAM=$RE64
+	PROGRAM=$TMP_EXE/hw1-64rel.exe
 fi
 
 echo "$PROGRAM"

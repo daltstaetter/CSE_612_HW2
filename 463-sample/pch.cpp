@@ -6,6 +6,8 @@
  * Date: 8/29/2019
  * Modified by Dalton Altstaetter
  * with permission for HW1-1
+ * CSE 612
+ * Fall 2019
  */
 
 #include "pch.h"

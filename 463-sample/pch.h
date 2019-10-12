@@ -23,10 +23,31 @@
 #include <windows.h>
 #include <time.h>
 
+// help debug memory leak
+//#define _CRTDBG_MAP_ALLOC
+//#include <crtdbg.h>
+
+
 #include "HTMLParserBase.h"
 #include "url_parser.h"
 
+#define SINGLE_URL_INPUT    2
+#define URL_FILE_INPUT      (SINGLE_URL_INPUT + 1)
+
+
+#ifndef GLOBALS1
+#define GLOBALS1
+
+#include <unordered_set>
+#include <string>
+#include <queue>
+using namespace std;
+
+#endif // !GLOBALS1
+
+#include  "main.h"
+
 //#define DEBU
-//#define NO_QUIT // TODO: Think I found an issue where I am exiting when I need to be returning null, I am not freeing memory that I have allocated or need some way to do this. I need some way to gracefully exit
+//#define NO_QUIT
 
 #endif //PCH_H

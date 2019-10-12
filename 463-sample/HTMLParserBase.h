@@ -5,6 +5,9 @@
 // Date: 9/3/2019
 // Created by: Dmitri Loguinov
 // Used by Dalton Altstaetter with permission
+// CSE 612
+// Fall 2019
+
 
 
 #ifdef _WIN64
