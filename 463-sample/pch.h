@@ -31,19 +31,17 @@
 #include "HTMLParserBase.h"
 #include "url_parser.h"
 
-#define SINGLE_URL_INPUT    2
-#define URL_FILE_INPUT      (SINGLE_URL_INPUT + 1)
 
-
+/*
 #ifndef GLOBALS1
 #define GLOBALS1
-
 #include <unordered_set>
 #include <string>
 #include <queue>
 using namespace std;
+*/
 
-#endif // !GLOBALS1
+//#endif // !GLOBALS1
 
 #include  "main.h"
 

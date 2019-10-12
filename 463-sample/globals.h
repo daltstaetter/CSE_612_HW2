@@ -8,22 +8,15 @@
  * CSE 612
  * Fall 2019
  */
-#ifndef GLOBALS1
-#define GLOBALS1
-
-#include <unordered_set>
-#include <string>
-using namespace std;
-
-#endif // !GLOBALS1
 
 #ifndef GLOBALS2
 #define GLOBALS2
 
 // Global variables
-int32_t gNum_cmdline_args;
-int32_t gNum_init_threads;
-unordered_set<DWORD> *gSeen_IPs;
-unordered_set<string> *gSeen_hosts;
+char* gLog_buffer;
+uint32_t gLog_buffer_size;
+#define LOG_INIT_SIZE   8192
+
+
 
 #endif // !GLOBALS1
