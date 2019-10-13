@@ -82,11 +82,12 @@ static char* get_char(char paSub_url[MAX_DNS_LEN], const int8_t delimiter);
 int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, const char* pDNS_server);
 int32_t err_check(int32_t aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num);
 void kill_pointer(void** ptr);
-uint32_t null_strlen(const char* str);
+int32_t null_strlen(const char* str);
 int32_t print_usage(void);
 void exit_process(void);
 int32_t starts_with(const char* start_string, const char* in_string);
 int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer);
+int32_t create_packet(char** ppPacket, Inputs_t* pInputs);
 uint16_t set_query_type(Inputs_t* pInputs);
 
 int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len);

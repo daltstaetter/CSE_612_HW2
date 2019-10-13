@@ -72,9 +72,9 @@ void kill_pointer(void** ptrptr)
     }
 }
 
-uint32_t null_strlen(const char* str)
+int32_t null_strlen(const char* str)
 {
-    return (uint32_t)(strlen(str) + 1);
+    return (int32_t)(strlen(str) + 1);
 }
 
 // ERROR CHECK COMPLETED
@@ -133,13 +133,13 @@ int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, c
     assert(strlen(pHost_IP) > 0);
     assert(strlen(pDNS_server) > 0);
 
-    if (err_check((pLog_buffer = (char*)calloc(gLog_buffer_size, sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((pLog_buffer = (char*)calloc(gLog_buffer_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
-    if (err_check((pInputs->hostname_ip_lookup = (char*)calloc(null_strlen(pHost_IP), sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((pInputs->hostname_ip_lookup = (char*)calloc(null_strlen(pHost_IP), sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
-    if (err_check((pInputs->dns_server_ip = (char*)calloc(null_strlen(pDNS_server), sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((pInputs->dns_server_ip = (char*)calloc(null_strlen(pDNS_server), sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
     if (err_check((strcpy_s(pInputs->hostname_ip_lookup, null_strlen(pHost_IP), pHost_IP)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
@@ -153,10 +153,62 @@ int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, c
 
 int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
 {
-    ;
-    DNS_Answer_Header_t* dns_answer_hdr;
-    
-    char* pkt;
+    char* dns_pkt = NULL;
+    ////   DNS Transmit pkt
+    ////  __________________
+    //// | Fixed DNS HEADER | 12-bytes
+    //// |__________________|
+    //// |    Questions     | var_length
+    //// |__________________|
+    //// |     Answers      | var_length
+    //// |__________________|
+    //// |    Authority     | var_length
+    //// |__________________|
+    //// |   Extra ResRec   | var_length
+    //// |__________________|
+
+    ////     Subcomponents
+    ////  ------------------
+    //// |  TXID  |  FLAGS  | 4-bytes
+    //// | nQuest | nAnsRR  | 4-bytes
+    //// | nAuthRR| nXtraRR | 4-bytes
+    //// |------------------|
+    //// | host_IP_qry_str  | len = strlen(host_IP) + 2 (for first count and Null char)
+    //// | qType  | qClass  | 4-bytes
+    ////  ------------------
+    //
+    //// ex: "www.yahoo.com" -> qry_str = "3www5yahoo3com"
+    //uint32_t host_len = null_strlen(pInputs->hostname_ip_lookup) + 1; // prepend one byte for the "3" in "3www5yahoo3com"
+    //uint32_t pkt_size = sizeof(Fixed_DNS_Header_t) + host_len + sizeof(DNS_Query_Header_t);
+    //
+    //if (err_check((pkt = (char*) calloc(pkt_size, sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    //    return FAIL;
+
+    //
+    //Fixed_DNS_Header_t* dns_fixed_hdr = (Fixed_DNS_Header_t*) pkt;
+    //DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*) (pkt + pkt_size - sizeof(DNS_Query_Header_t));
+    //char* dns_query_str = pkt + sizeof(Fixed_DNS_Header_t);
+    //
+    //// fixed field initialization
+    //dns_fixed_hdr->flags = htons(DNS_QUERY | DNS_RD | DNS_STDQUERY);
+    //dns_fixed_hdr->num_questions = htons(1);
+    //dns_fixed_hdr->num_answers = 0;
+    //dns_fixed_hdr->num_authority = 0;
+    //dns_fixed_hdr->num_additional = 0;
+
+    //if (set_query_string(pInputs, dns_query_str, host_len) != SUCCESS)
+    //    return FAIL;
+    //dns_query_hdr->qry_type = htons(set_query_type(pInputs));
+    //dns_query_hdr->qry_class = htons(DNS_INET);
+    if (create_packet(&dns_pkt, pInputs) != SUCCESS)
+        return FAIL;
+
+    return SUCCESS;
+}
+
+int32_t create_packet(char** ppPacket, Inputs_t* pInputs)
+{
+    char* pPacket = NULL;
     //   DNS Transmit pkt
     //  __________________
     // | Fixed DNS HEADER | 12-bytes
@@ -179,19 +231,18 @@ int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
     // | host_IP_qry_str  | len = strlen(host_IP) + 2 (for first count and Null char)
     // | qType  | qClass  | 4-bytes
     //  ------------------
-    
+
     // ex: "www.yahoo.com" -> qry_str = "3www5yahoo3com"
-    uint32_t host_len = strlen(pInputs->hostname_ip_lookup) + 2;
+    uint32_t host_len = null_strlen(pInputs->hostname_ip_lookup) + 1; // prepend one byte for the "3" in "3www5yahoo3com"
     uint32_t pkt_size = sizeof(Fixed_DNS_Header_t) + host_len + sizeof(DNS_Query_Header_t);
-    
-    if (err_check((pkt = (char*) calloc(pkt_size, sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+
+    if (err_check((pPacket = (char*)calloc(pkt_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return FAIL;
 
-    
-    Fixed_DNS_Header_t* dns_fixed_hdr = (Fixed_DNS_Header_t*) pkt;
-    DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*) (pkt + pkt_size - sizeof(DNS_Query_Header_t));
-    char* dns_query_str = pkt + sizeof(Fixed_DNS_Header_t);
-    
+    Fixed_DNS_Header_t* dns_fixed_hdr = (Fixed_DNS_Header_t*) pPacket;
+    DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*)(pPacket + pkt_size - sizeof(DNS_Query_Header_t));
+    char* dns_query_str = pPacket + sizeof(Fixed_DNS_Header_t);
+
     // fixed field initialization
     dns_fixed_hdr->flags = htons(DNS_QUERY | DNS_RD | DNS_STDQUERY);
     dns_fixed_hdr->num_questions = htons(1);
@@ -199,12 +250,17 @@ int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
     dns_fixed_hdr->num_authority = 0;
     dns_fixed_hdr->num_additional = 0;
 
+    // variable length query field initialization
     if (set_query_string(pInputs, dns_query_str, host_len) != SUCCESS)
+    {
+        kill_pointer((void**) &pPacket);
         return FAIL;
+    }
     dns_query_hdr->qry_type = htons(set_query_type(pInputs));
     dns_query_hdr->qry_class = htons(DNS_INET);
 
-
+    *ppPacket = pPacket;
+    
     return SUCCESS;
 }
 
@@ -236,7 +292,7 @@ int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len
         // the underflow error. Key design idea: Don't do math on ptrs more likely to be null or which change more frequently
         if (current_token >= (pQuery_str + 1) && current_token < (pQuery_str + aHost_len - 1))
         {
-            bytes_written = _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
+            bytes_written = _snprintf_s(&current_token[-1], (size_t)null_strlen(current_token) + 1, _TRUNCATE, "%u%s", (unsigned int)strlen(current_token), current_token);
 
             if (err_check(bytes_written >= null_strlen(current_token) + 1 || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__ - 1) != SUCCESS)
                 return FAIL;
