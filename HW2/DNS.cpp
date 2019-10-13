@@ -246,8 +246,12 @@ int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len
     int32_t bytes_written = 0;
     for (next_token = &pQuery_str[1]; next_token[0] != NULL; )
     {
-        current_token = strtok_s(next_token, ".", &next_token);
-        if (current_token - 1 >= pQuery_str && current_token < (pQuery_str + aHost_len - 1))
+        char* current_token = strtok_s(next_token, ".", &next_token);
+
+        // Very tricky bug discovered. if current_token is NULL and you test current_token - 1 >= pQuery_str
+        // then current_token-1 wraps around and is >= pQuery_str and executes. By moving 1 to query string you avoid
+        // the underflow error. Key design idea: Don't do math on ptrs more likely to be null or which change more frequently
+        if (current_token >= (pQuery_str + 1) && current_token < (pQuery_str + aHost_len - 1))
         {
             bytes_written = _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
 
