@@ -15,6 +15,8 @@
 #define SUCCESS         0
 #define FAIL            1
 #define MAX_DNS_LEN     512
+#define BASE_10         10
+#define ERR_TRUNCATION  -1
 
 // DNS query types 
 #define DNS_A 1         // name -> IP (forward lookup)
@@ -86,6 +88,8 @@ void exit_process(void);
 int32_t starts_with(const char* start_string, const char* in_string);
 int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer);
 uint16_t set_query_type(Inputs_t* pInputs);
+
+int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len);
 
 
 

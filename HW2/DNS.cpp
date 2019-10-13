@@ -52,7 +52,8 @@ int32_t err_check(int32_t aTest, const char* aMsg, const char* aFile, const char
         if (fname < aFile || fname > aFile_end)
             fname = aFile; // something went wrong
         
-        return FAIL;
+        printf("\nERROR:%s:%u:%s", fname, aLine_num, aMsg);
+            return FAIL;
     }
     return SUCCESS;
 }
@@ -132,13 +133,13 @@ int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, c
     assert(strlen(pHost_IP) > 0);
     assert(strlen(pDNS_server) > 0);
 
-    if (err_check((pLog_buffer = (char*)malloc(sizeof(char) * gLog_buffer_size)) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((pLog_buffer = (char*)calloc(gLog_buffer_size, sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
-    if (err_check((pInputs->hostname_ip_lookup = (char*)malloc(sizeof(char) * null_strlen(pHost_IP))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((pInputs->hostname_ip_lookup = (char*)calloc(null_strlen(pHost_IP), sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
-    if (err_check((pInputs->dns_server_ip = (char*)malloc(sizeof(char) * null_strlen(pDNS_server))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((pInputs->dns_server_ip = (char*)calloc(null_strlen(pDNS_server), sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
     if (err_check((strcpy_s(pInputs->hostname_ip_lookup, null_strlen(pHost_IP), pHost_IP)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
@@ -181,10 +182,11 @@ int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
     
     // ex: "www.yahoo.com" -> qry_str = "3www5yahoo3com"
     uint32_t host_len = strlen(pInputs->hostname_ip_lookup) + 2;
-    uint32_t pkt_size = host_len + sizeof(Fixed_DNS_Header_t) + sizeof(DNS_Query_Header_t);
+    uint32_t pkt_size = sizeof(Fixed_DNS_Header_t) + host_len + sizeof(DNS_Query_Header_t);
     
-    if (err_check((pkt = (char*)malloc(sizeof(char) * pkt_size)) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((pkt = (char*) calloc(pkt_size, sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return FAIL;
+
     
     Fixed_DNS_Header_t* dns_fixed_hdr = (Fixed_DNS_Header_t*) pkt;
     DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*) (pkt + pkt_size - sizeof(DNS_Query_Header_t));
@@ -197,7 +199,7 @@ int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
     dns_fixed_hdr->num_authority = 0;
     dns_fixed_hdr->num_additional = 0;
 
-    
+    set_query_string(pInputs, dns_query_str, host_len);
     dns_query_hdr->qry_type = htons(set_query_type(pInputs));
     dns_query_hdr->qry_class = htons(DNS_INET);
 
@@ -214,6 +216,46 @@ uint16_t set_query_type(Inputs_t* pInputs)
         return DNS_A;       // forward lookup
     else
         return DNS_PTR;     // reverse lookup
+}
+
+int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len)
+{
+    char* next_token = NULL;
+    char* current_token = NULL;
+    //char* tmp_str = (char*)calloc(null_strlen(pInputs->hostname_ip_lookup), sizeof(char));
+    //if(err_check(strcpy_s(&pQuery_str[1], aHost_len, pInputs->hostname_ip_lookup) != SUCCESS, "strcpy_s fail", __FILE__, __FUNCTION__, __LINE__))
+    if (err_check((strcpy_s(&pQuery_str[1], aHost_len, pInputs->hostname_ip_lookup)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+        return FAIL;
+
+    //next_token = &pQuery_str[1];
+    //current_token = strtok_s(next_token, ".", &next_token);
+    //if (current_token - 1 >= pQuery_str && current_token < (pQuery_str + aHost_len - 1))
+    //    _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
+    ////_snprintf_s(pQuery_str, null_strlen(current_token)+1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
+
+    //
+    //
+    //current_token = strtok_s(next_token, ".", &next_token);
+    //if (current_token - 1 >= pQuery_str && current_token < (pQuery_str + aHost_len - 1))
+    //    _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
+
+    //current_token = strtok_s(next_token, ".", &next_token);
+    //if (current_token - 1 >= pQuery_str && current_token < (pQuery_str + aHost_len - 1))
+    //    _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
+    //
+    int32_t bytes_written = 0;
+    for (next_token = &pQuery_str[1]; next_token[0] != NULL; )
+    {
+        current_token = strtok_s(next_token, ".", &next_token);
+        if (current_token - 1 >= pQuery_str && current_token < (pQuery_str + aHost_len - 1))
+        {
+            bytes_written = _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
+
+            if (err_check(bytes_written >= null_strlen(current_token) + 1 || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__ - 1) != SUCCESS)
+                return FAIL;
+        }
+    }
+
 }
 
 
