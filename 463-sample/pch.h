@@ -29,7 +29,7 @@
 
 
 #include "HTMLParserBase.h"
-#include "url_parser.h"
+#include "DNS.h"
 
 
 /*

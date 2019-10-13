@@ -16,6 +16,8 @@
 
 //_CrtMemState s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
 
+extern char* gLog_buffer;
+extern uint32_t gLog_buffer_size;
 
 
 
@@ -25,6 +27,9 @@ int32_t main(int32_t argc, char* argv[])
 
     int32_t status = SUCCESS;
 
+    gLog_buffer_size = LOG_INIT_SIZE;
+    gLog_buffer = (char*)malloc(sizeof(char) * gLog_buffer_size);
+
     //if (isdigit(*pNum_threads) && atoi(pNum_threads) > 0)
 
     if (argc == VALID_NUM_ARGS)
@@ -32,6 +37,7 @@ int32_t main(int32_t argc, char* argv[])
     else
         status = print_usage();
 
+    kill_pointer((void**)&gLog_buffer);
     return status;
 }
 

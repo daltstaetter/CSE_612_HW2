@@ -1,5 +1,5 @@
 /* HW1-1
- * url_parser.cpp: This parses the input URL to create the GET request
+ * DNS.cpp: This parses the input URL to create the GET request
  *
  * Date: 8/29/2019
  * Author: Dalton Altstaetter
@@ -28,7 +28,6 @@ int32_t starts_with(const char* start_string, const char* in_string)
  */
 int32_t err_check(int32_t aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num, int32_t err_quit)
 {
-    return SUCCESS;
     if (aFile == NULL || aFunction == NULL)
         return SUCCESS;
     const char* fname = ((char*)aFile - 1);
@@ -75,7 +74,7 @@ void kill_pointer(void** ptrptr)
 
 uint32_t null_strlen(const char* str)
 {
-    return (strlen(str) + 1);
+    return (uint32_t)(strlen(str) + 1);
 }
 
 // ERROR CHECK COMPLETED
