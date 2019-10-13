@@ -17,6 +17,7 @@
 #define MAX_DNS_LEN     512
 #define BASE_10         10
 #define ERR_TRUNCATION  -1
+#define MAX_ATTEMPTS    3
 
 // DNS query types 
 #define DNS_A 1         // name -> IP (forward lookup)
@@ -87,10 +88,12 @@ int32_t print_usage(void);
 void exit_process(void);
 int32_t starts_with(const char* start_string, const char* in_string);
 int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer);
-int32_t create_packet(char** ppPacket, Inputs_t* pInputs);
+int32_t create_packet(char** ppPacket, Inputs_t* pInputs, uint32_t* pPacket_size);
 uint16_t set_query_type(Inputs_t* pInputs);
 
 int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len);
+
+int32_t send_query(char* pPacket, uint32_t aPacket_size);
 
 
 

@@ -32,8 +32,7 @@ int32_t main(int32_t argc, char* argv[])
     if (set_inputs(&inputs, gLog_buffer, argv[1], argv[2]) != SUCCESS)
         return terminate_safely(&inputs);
         
-    //if (isdigit(*pNum_threads) && atoi(pNum_threads) > 0)
-
+    // TODO: print out the keys values/inputs
     status = run_DNS(&inputs, gLog_buffer);
     terminate_safely(&inputs);
 

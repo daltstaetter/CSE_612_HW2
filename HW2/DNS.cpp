@@ -154,14 +154,18 @@ int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, c
 int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
 {
     char* dns_pkt = NULL;
+    uint32_t dns_pkt_size = 0;
 
-    if (create_packet(&dns_pkt, pInputs) != SUCCESS)
+    if (create_packet(&dns_pkt, pInputs, &dns_pkt_size) != SUCCESS)
         return FAIL;
 
+    send_query(dns_pkt, dns_pkt_size);
+
+    kill_pointer((void**) &dns_pkt);
     return SUCCESS;
 }
 
-int32_t create_packet(char** ppPacket, Inputs_t* pInputs)
+int32_t create_packet(char** ppPacket, Inputs_t* pInputs, uint32_t* pPacket_size)
 {
     char* pPacket = NULL;
     //   DNS Transmit pkt
@@ -190,6 +194,7 @@ int32_t create_packet(char** ppPacket, Inputs_t* pInputs)
     // ex: "www.yahoo.com" -> qry_str = "3www5yahoo3com"
     uint32_t host_len = null_strlen(pInputs->hostname_ip_lookup) + 1; // prepend one byte for the "3" in "3www5yahoo3com"
     uint32_t pkt_size = sizeof(Fixed_DNS_Header_t) + host_len + sizeof(DNS_Query_Header_t);
+    *pPacket_size = pkt_size;
 
     if (err_check((pPacket = (char*)calloc(pkt_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return FAIL;
@@ -199,6 +204,7 @@ int32_t create_packet(char** ppPacket, Inputs_t* pInputs)
     char* dns_query_str = pPacket + sizeof(Fixed_DNS_Header_t);
 
     // fixed field initialization
+    dns_fixed_hdr->tx_id = htons((uint16_t)clock());
     dns_fixed_hdr->flags = htons(DNS_QUERY | DNS_RD | DNS_STDQUERY);
     dns_fixed_hdr->num_questions = htons(1);
     dns_fixed_hdr->num_answers = 0;
@@ -254,6 +260,99 @@ int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len
         }
     }
     return SUCCESS;
+}
+
+int32_t send_query(char* pPacket, uint32_t aPacket_size)
+{
+    int32_t status = SUCCESS;
+    char recv_buff[MAX_DNS_LEN];
+    sockaddr_in sender_addr;
+    int sender_addr_len = sizeof(sender_addr);
+    int32_t available = NULL;
+
+    //Initialize WinSock; once per program run
+    WSADATA wsaData;
+    WORD wVersionRequested = MAKEWORD(2, 2);
+    if (WSAStartup(wVersionRequested, &wsaData) != 0)
+    {
+        printf("WSAStartup error %d\n", WSAGetLastError());
+        WSACleanup();
+        return FAIL;
+    }
+
+    // open a UDP socket
+    SOCKET dns_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (dns_sock == INVALID_SOCKET)
+    {
+        printf("failed with %d on socket init\n", WSAGetLastError());
+        WSACleanup();
+        return FAIL;
+    }
+
+    // TODO: Try using different sender/receiver sockets
+    // Are the sender and receiver sockets different??? I think they are
+    // TODO: Add the null char at the end of the socket message I am sending
+    // https://www.geeksforgeeks.org/udp-server-client-implementation-c/
+    // handle errors
+    struct sockaddr_in local;
+    memset(&local, 0, sizeof(local));
+    local.sin_family = AF_INET;
+    local.sin_addr.s_addr = INADDR_ANY;
+    local.sin_port = htons(0);
+    if (bind(dns_sock, (struct sockaddr*) &local, sizeof(local)) == SOCKET_ERROR)
+    {
+        printf("Socket Error: %d\n", WSAGetLastError());
+        return FAIL;
+    }
+
+    struct sockaddr_in remote;
+    memset(&remote, 0, sizeof(remote));
+    remote.sin_family = AF_INET;
+    remote.sin_addr.s_addr = inet_addr("8.8.8.8");      // Google DNS Server
+    remote.sin_port = htons(53);                        // DNS port on server
+    
+    for (int attempts = 0; attempts < MAX_ATTEMPTS; attempts++)
+    {
+        if (sendto(dns_sock, pPacket, aPacket_size, 0, (struct sockaddr*) &remote, sizeof(remote)) == SOCKET_ERROR)
+        {
+            printf("Socket Error: %d\n", WSAGetLastError());
+            status = FAIL;
+        }
+
+        // check socket for data
+        TIMEVAL timeout; // timeout(s) = tv_sec + tv_usec*(10^-6)
+        timeout.tv_sec = 10;
+        timeout.tv_usec = 0;
+
+        fd_set fd_reader; // monitors an array of sockets. Need to init and then set my socket array for when it has data(read)
+        fd_set fd_exception; // check for errors on socket
+
+        // init monitors
+        FD_ZERO(&fd_reader);
+        FD_ZERO(&fd_exception);
+
+        // bind monitors to socket
+        FD_SET(dns_sock, &fd_reader);
+        FD_SET(dns_sock, &fd_exception);
+        available = select(0, &fd_reader, 0, &fd_exception, &timeout);
+        
+        if (available > 0)
+        {
+            if (recvfrom(dns_sock, recv_buff, MAX_DNS_LEN * sizeof(char), 0, (SOCKADDR*)& sender_addr, &sender_addr_len) > 0)
+            {
+                status = SUCCESS;
+                break;
+            }
+        }
+        status = FAIL;
+    }
+    
+    if (status == SUCCESS)
+    {
+        // TODO: Parse Resonse
+    }
+    
+    return status;
 }
 
 
