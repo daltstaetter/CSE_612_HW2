@@ -12,10 +12,12 @@
 #ifndef GLOBALS2
 #define GLOBALS2
 
+#define LOG_INIT_SIZE   8192
+
 // Global variables
 char* gLog_buffer;
-uint32_t gLog_buffer_size;
-#define LOG_INIT_SIZE   8192
+uint32_t gLog_buffer_size = LOG_INIT_SIZE;
+
 
 
 

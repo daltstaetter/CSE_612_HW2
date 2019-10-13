@@ -22,13 +22,12 @@
 #include <stdlib.h>
 #include <windows.h>
 #include <time.h>
+#include <assert.h>
 
 // help debug memory leak
 //#define _CRTDBG_MAP_ALLOC
 //#include <crtdbg.h>
 
-
-#include "HTMLParserBase.h"
 #include "DNS.h"
 
 

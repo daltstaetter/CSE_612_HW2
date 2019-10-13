@@ -33,12 +33,22 @@
 #define ROBOT_BUFF_SIZE     16384   // 16 KB
 #define MAX_BUFF_SIZE       2097152 //  2 MB
 
+// DNS query types 
+#define DNS_A 1         // name -> IP 
+#define DNS_NS 2        // name server 
+#define DNS_CNAME 5     // canonical name 
+#define DNS_PTR 12      // IP -> name 
+#define DNS_HINFO 13    // host info/SOA 
+#define DNS_MX 15       // mail exchange 
+#define DNS_AXFR 252    // request for zone transfer 
+#define DNS_ANY 255     // all records 
+
 int32_t sock_check(int32_t aTest, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
     char sock_err_buff[ERR_BUFF_SIZE];
     errno_t bytes_written = _snprintf_s(sock_err_buff, _countof(sock_err_buff), _TRUNCATE, "%d", WSAGetLastError());
-    if (err_check(aTest, sock_err_buff, aFile, aFunction, aLine_num, 0) != SUCCESS)
-        return 1;
+    if (err_check(aTest, sock_err_buff, aFile, aFunction, aLine_num) != SUCCESS)
+        return FAIL;
 
     return SUCCESS;
 }
