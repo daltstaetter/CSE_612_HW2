@@ -11,6 +11,7 @@
 //extern _CrtMemState s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
 
 extern char* gLog_buffer;
+extern uint32_t gLog_buffer_size;
 
 void exit_process()
 {
@@ -126,10 +127,13 @@ int32_t set_port(char paSub_url[MAX_DNS_LEN], uint16_t* pPort)
     return SUCCESS;
 }
 
-int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_server)
+int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, const char* pDNS_server)
 {
     assert(strlen(pHost_IP) > 0);
     assert(strlen(pDNS_server) > 0);
+
+    if (err_check((pLog_buffer = (char*)malloc(sizeof(char) * gLog_buffer_size)) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+        return terminate_safely(pInputs);
 
     if (err_check((pInputs->hostname_ip_lookup = (char*)malloc(sizeof(char) * null_strlen(pHost_IP))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
@@ -142,6 +146,12 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
 
     if (err_check((strcpy_s(pInputs->dns_server_ip, null_strlen(pDNS_server), pDNS_server)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
+
+    return SUCCESS;
+}
+
+int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
+{
 
     return SUCCESS;
 }

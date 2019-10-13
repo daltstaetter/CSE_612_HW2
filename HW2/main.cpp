@@ -29,19 +29,12 @@ int32_t main(int32_t argc, char* argv[])
 
     Inputs_t inputs;
 
-    if (err_check((gLog_buffer = (char*)malloc(sizeof(char) * gLog_buffer_size)) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
-        return terminate_safely(&inputs);
-
-    if (set_inputs(&inputs, argv[1], argv[2]) != SUCCESS)
+    if (set_inputs(&inputs, gLog_buffer, argv[1], argv[2]) != SUCCESS)
         return terminate_safely(&inputs);
         
     //if (isdigit(*pNum_threads) && atoi(pNum_threads) > 0)
 
-    if (argc == VALID_NUM_ARGS)
-        status = SUCCESS;
-    else
-        status = print_usage();
-
+    status = run_DNS(&inputs, gLog_buffer);
     terminate_safely(&inputs);
 
     return status;

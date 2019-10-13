@@ -43,6 +43,9 @@
 #define DNS_AXFR 252    // request for zone transfer 
 #define DNS_ANY 255     // all records 
 
+// query classes 
+#define DNS_INET 1
+
 int32_t sock_check(int32_t aTest, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
     char sock_err_buff[ERR_BUFF_SIZE];
