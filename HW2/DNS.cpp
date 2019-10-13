@@ -154,52 +154,7 @@ int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, c
 int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
 {
     char* dns_pkt = NULL;
-    ////   DNS Transmit pkt
-    ////  __________________
-    //// | Fixed DNS HEADER | 12-bytes
-    //// |__________________|
-    //// |    Questions     | var_length
-    //// |__________________|
-    //// |     Answers      | var_length
-    //// |__________________|
-    //// |    Authority     | var_length
-    //// |__________________|
-    //// |   Extra ResRec   | var_length
-    //// |__________________|
 
-    ////     Subcomponents
-    ////  ------------------
-    //// |  TXID  |  FLAGS  | 4-bytes
-    //// | nQuest | nAnsRR  | 4-bytes
-    //// | nAuthRR| nXtraRR | 4-bytes
-    //// |------------------|
-    //// | host_IP_qry_str  | len = strlen(host_IP) + 2 (for first count and Null char)
-    //// | qType  | qClass  | 4-bytes
-    ////  ------------------
-    //
-    //// ex: "www.yahoo.com" -> qry_str = "3www5yahoo3com"
-    //uint32_t host_len = null_strlen(pInputs->hostname_ip_lookup) + 1; // prepend one byte for the "3" in "3www5yahoo3com"
-    //uint32_t pkt_size = sizeof(Fixed_DNS_Header_t) + host_len + sizeof(DNS_Query_Header_t);
-    //
-    //if (err_check((pkt = (char*) calloc(pkt_size, sizeof(char))) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
-    //    return FAIL;
-
-    //
-    //Fixed_DNS_Header_t* dns_fixed_hdr = (Fixed_DNS_Header_t*) pkt;
-    //DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*) (pkt + pkt_size - sizeof(DNS_Query_Header_t));
-    //char* dns_query_str = pkt + sizeof(Fixed_DNS_Header_t);
-    //
-    //// fixed field initialization
-    //dns_fixed_hdr->flags = htons(DNS_QUERY | DNS_RD | DNS_STDQUERY);
-    //dns_fixed_hdr->num_questions = htons(1);
-    //dns_fixed_hdr->num_answers = 0;
-    //dns_fixed_hdr->num_authority = 0;
-    //dns_fixed_hdr->num_additional = 0;
-
-    //if (set_query_string(pInputs, dns_query_str, host_len) != SUCCESS)
-    //    return FAIL;
-    //dns_query_hdr->qry_type = htons(set_query_type(pInputs));
-    //dns_query_hdr->qry_class = htons(DNS_INET);
     if (create_packet(&dns_pkt, pInputs) != SUCCESS)
         return FAIL;
 
