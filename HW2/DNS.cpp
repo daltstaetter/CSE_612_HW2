@@ -80,8 +80,8 @@ uint32_t null_strlen(const char* str)
 int32_t print_usage(void)
 {
     printf("\nUsage:\t1)  hw2.exe [hostname | IPADDR] DNS_Server_IP\n\n");
-    printf("      \tEx: hw2.exe www.cnn.com 8.8.8.8\n"); // exit_process();
-    printf("      \tEx: hw2.exe 72.146.82.6 128.194.135.84\n"); // exit_process();
+    printf("      \tForward Lookup (host->IP): hw2.exe www.cnn.com 8.8.8.8\n"); // exit_process();
+    printf("      \tReverse Lookup (IP->host): hw2.exe 72.146.82.6 128.194.135.84\n"); // exit_process();
 
     return FAIL;
 }
@@ -152,8 +152,68 @@ int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, c
 
 int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
 {
+    ;
+    DNS_Answer_Header_t* dns_answer_hdr;
+    
+    char* pkt;
+    //   DNS Transmit pkt
+    //  __________________
+    // | Fixed DNS HEADER | 12-bytes
+    // |__________________|
+    // |    Questions     | var_length
+    // |__________________|
+    // |     Answers      | var_length
+    // |__________________|
+    // |    Authority     | var_length
+    // |__________________|
+    // |   Extra ResRec   | var_length
+    // |__________________|
+
+    //     Subcomponents
+    //  ------------------
+    // |  TXID  |  FLAGS  | 4-bytes
+    // | nQuest | nAnsRR  | 4-bytes
+    // | nAuthRR| nXtraRR | 4-bytes
+    // |------------------|
+    // | host_IP_qry_str  | len = strlen(host_IP) + 2 (for first count and Null char)
+    // | qType  | qClass  | 4-bytes
+    //  ------------------
+    
+    // ex: "www.yahoo.com" -> qry_str = "3www5yahoo3com"
+    uint32_t host_len = strlen(pInputs->hostname_ip_lookup) + 2;
+    uint32_t pkt_size = host_len + sizeof(Fixed_DNS_Header_t) + sizeof(DNS_Query_Header_t);
+    
+    if (err_check((pkt = (char*)malloc(sizeof(char) * pkt_size)) == NULL, "malloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+        return FAIL;
+    
+    Fixed_DNS_Header_t* dns_fixed_hdr = (Fixed_DNS_Header_t*) pkt;
+    DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*) (pkt + pkt_size - sizeof(DNS_Query_Header_t));
+    char* dns_query_str = pkt + sizeof(Fixed_DNS_Header_t);
+    
+    // fixed field initialization
+    dns_fixed_hdr->flags = htons(DNS_QUERY | DNS_RD | DNS_STDQUERY);
+    dns_fixed_hdr->num_questions = htons(1);
+    dns_fixed_hdr->num_answers = 0;
+    dns_fixed_hdr->num_authority = 0;
+    dns_fixed_hdr->num_additional = 0;
+
+    
+    dns_query_hdr->qry_type = htons(set_query_type(pInputs));
+    dns_query_hdr->qry_class = htons(DNS_INET);
+
+    //DNS_Query_Header_t
 
     return SUCCESS;
+}
+
+uint16_t set_query_type(Inputs_t* pInputs)
+{
+    unsigned long IP = inet_addr(pInputs->hostname_ip_lookup);
+
+    if (IP == INADDR_NONE)  // we were given a hostname
+        return DNS_A;       // forward lookup
+    else
+        return DNS_PTR;     // reverse lookup
 }
 
 

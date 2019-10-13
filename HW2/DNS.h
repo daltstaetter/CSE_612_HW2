@@ -16,6 +16,34 @@
 #define FAIL            1
 #define MAX_DNS_LEN     512
 
+// DNS query types 
+#define DNS_A 1         // name -> IP (forward lookup)
+#define DNS_NS 2        // name server 
+#define DNS_CNAME 5     // canonical name 
+#define DNS_PTR 12      // IP -> name (reverse lookup)
+#define DNS_HINFO 13    // host info/SOA 
+#define DNS_MX 15       // mail exchange 
+#define DNS_AXFR 252    // request for zone transfer 
+#define DNS_ANY 255     // all records 
+
+// query classes 
+#define DNS_INET 1
+
+// flags - see bitfields
+// ( Query_Resp[15] | opcode[14->11] | AuthAns[10]    | TruncResp[9] |
+//      RecurDes[8] | RecurAvail[7]  | reserved[6->4] | result[3->0] )
+#define DNS_QUERY       (0 << 15)       
+#define DNS_RESPONSE    (1 << 15)       
+
+#define DNS_STDQUERY    (0 << 11)       // opcode - 4 bits 
+
+#define DNS_AA          (1 << 10)       // Authoritative answer
+#define DNS_TC          (1 << 9)        // truncated
+#define DNS_RD          (1 << 8)        // recursion desired 
+#define DNS_RA          (1 << 7)        // recursion available 
+
+
+
 #pragma pack(push,1)    // sets struct padding/alignment to 1 byte
 typedef struct DNS_Answer_Header {
     uint16_t dns_type;
@@ -26,12 +54,8 @@ typedef struct DNS_Answer_Header {
 } DNS_Answer_Header_t;
 
 typedef struct DNS_Query_Header {
-    uint16_t dns_name;
-    uint16_t dns_value;
-    uint16_t dns_type;
-    uint32_t dns_ttl;
-    uint16_t dns_length;
-
+    uint16_t qry_type;
+    uint16_t qry_class;
 } DNS_Query_Header_t;
 
 typedef struct Fixed_DNS_Header {
@@ -61,6 +85,7 @@ int32_t print_usage(void);
 void exit_process(void);
 int32_t starts_with(const char* start_string, const char* in_string);
 int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer);
+uint16_t set_query_type(Inputs_t* pInputs);
 
 
 

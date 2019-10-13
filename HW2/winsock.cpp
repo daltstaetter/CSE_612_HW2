@@ -14,7 +14,7 @@
 
 
 #include "pch.h"
-#include "main.h"
+//#include "main.h"
  //#include "globals.h"
 
 //extern _CrtMemState s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
@@ -32,19 +32,6 @@
 
 #define ROBOT_BUFF_SIZE     16384   // 16 KB
 #define MAX_BUFF_SIZE       2097152 //  2 MB
-
-// DNS query types 
-#define DNS_A 1         // name -> IP 
-#define DNS_NS 2        // name server 
-#define DNS_CNAME 5     // canonical name 
-#define DNS_PTR 12      // IP -> name 
-#define DNS_HINFO 13    // host info/SOA 
-#define DNS_MX 15       // mail exchange 
-#define DNS_AXFR 252    // request for zone transfer 
-#define DNS_ANY 255     // all records 
-
-// query classes 
-#define DNS_INET 1
 
 int32_t sock_check(int32_t aTest, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
