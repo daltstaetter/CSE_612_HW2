@@ -199,11 +199,11 @@ int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
     dns_fixed_hdr->num_authority = 0;
     dns_fixed_hdr->num_additional = 0;
 
-    set_query_string(pInputs, dns_query_str, host_len);
+    if (set_query_string(pInputs, dns_query_str, host_len) != SUCCESS)
+        return FAIL;
     dns_query_hdr->qry_type = htons(set_query_type(pInputs));
     dns_query_hdr->qry_class = htons(DNS_INET);
 
-    //DNS_Query_Header_t
 
     return SUCCESS;
 }
@@ -220,31 +220,14 @@ uint16_t set_query_type(Inputs_t* pInputs)
 
 int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len)
 {
-    char* next_token = NULL;
-    char* current_token = NULL;
-    //char* tmp_str = (char*)calloc(null_strlen(pInputs->hostname_ip_lookup), sizeof(char));
-    //if(err_check(strcpy_s(&pQuery_str[1], aHost_len, pInputs->hostname_ip_lookup) != SUCCESS, "strcpy_s fail", __FILE__, __FUNCTION__, __LINE__))
+    if (strlen(pInputs->hostname_ip_lookup) <= 0 || aHost_len <= 0)
+        return FAIL;
+
     if (err_check((strcpy_s(&pQuery_str[1], aHost_len, pInputs->hostname_ip_lookup)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return FAIL;
 
-    //next_token = &pQuery_str[1];
-    //current_token = strtok_s(next_token, ".", &next_token);
-    //if (current_token - 1 >= pQuery_str && current_token < (pQuery_str + aHost_len - 1))
-    //    _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
-    ////_snprintf_s(pQuery_str, null_strlen(current_token)+1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
-
-    //
-    //
-    //current_token = strtok_s(next_token, ".", &next_token);
-    //if (current_token - 1 >= pQuery_str && current_token < (pQuery_str + aHost_len - 1))
-    //    _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
-
-    //current_token = strtok_s(next_token, ".", &next_token);
-    //if (current_token - 1 >= pQuery_str && current_token < (pQuery_str + aHost_len - 1))
-    //    _snprintf_s(&current_token[-1], null_strlen(current_token) + 1, _TRUNCATE, "%u%s", strlen(current_token), current_token);
-    //
     int32_t bytes_written = 0;
-    for (next_token = &pQuery_str[1]; next_token[0] != NULL; )
+    for (char* next_token = &pQuery_str[1]; next_token[0] != NULL; )
     {
         char* current_token = strtok_s(next_token, ".", &next_token);
 
@@ -259,7 +242,7 @@ int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len
                 return FAIL;
         }
     }
-
+    return SUCCESS;
 }
 
 
