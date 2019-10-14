@@ -253,8 +253,8 @@ int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len
         // the underflow error. Key design idea: Don't do math on ptrs more likely to be null or which change more frequently
         if (current_token >= (pQuery_str + 1) && current_token < (pQuery_str + aHost_len - 1))
         {
-            bytes_written = _snprintf_s(&current_token[-1], (size_t)null_strlen(current_token) + 1, _TRUNCATE, "%u%s", (unsigned int)strlen(current_token), current_token);
-
+            //bytes_written = _snprintf_s(&current_token[-1], (size_t)null_strlen(current_token) + 1, _TRUNCATE, "%u%s", (unsigned int)strlen(current_token)-'0', current_token);
+            current_token[-1] = strlen(current_token);
             if (err_check(bytes_written >= null_strlen(current_token) + 1 || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__ - 1) != SUCCESS)
                 return FAIL;
         }
