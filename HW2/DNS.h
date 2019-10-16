@@ -48,15 +48,21 @@
 
 
 #pragma pack(push,1)    // sets struct padding/alignment to 1 byte
-typedef struct DNS_Answer_Header {
+typedef struct DNS_AnswerRR_Header {
     uint16_t dns_type;
     uint16_t dns_class;
     uint32_t dns_ttl;
     uint16_t dns_length;
 
-} DNS_Answer_Header_t;
+} DNS_AnswerRR_Header_t;
 
-typedef struct DNS_Query_Header {
+typedef struct DNS_AuthorityRR_Header {
+    uint16_t qry_type;
+    uint16_t qry_class;
+} DNS_AuthorityRR_Header_t;
+
+
+typedef struct DNS_AdditionalRR_Header {
     uint16_t qry_type;
     uint16_t qry_class;
 } DNS_Query_Header_t;
@@ -73,6 +79,9 @@ typedef struct Fixed_DNS_Header {
 typedef struct Inputs {
     char* hostname_ip_lookup;
     char* dns_server_ip;
+    uint16_t dns_type;
+    uint16_t tx_id;
+    uint16_t dns_pkt_size;
 } Inputs_t;
 
 #pragma pack(pop)       // restores old packing
