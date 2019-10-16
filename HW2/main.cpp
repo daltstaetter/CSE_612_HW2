@@ -29,11 +29,11 @@ int32_t main(int32_t argc, char* argv[])
 
     Inputs_t inputs;
 
-    if (set_inputs(&inputs, gLog_buffer, argv[1], argv[2]) != SUCCESS)
+    if (set_inputs(&inputs, argv[1], argv[2]) != SUCCESS)
         return terminate_safely(&inputs);
         
     // TODO: print out the keys values/inputs
-    status = run_DNS(&inputs, gLog_buffer);
+    status = run_DNS(&inputs);
     print_log(gLog_buffer);
     terminate_safely(&inputs);
 

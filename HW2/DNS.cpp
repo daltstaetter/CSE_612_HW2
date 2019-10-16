@@ -148,13 +148,19 @@ int32_t set_port(char paSub_url[MAX_DNS_LEN], uint16_t* pPort)
     return SUCCESS;
 }
 
-int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, const char* pDNS_server)
+int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_server)
 {
     assert(strlen(pHost_IP) > 0);
     assert(strlen(pDNS_server) > 0);
 
-    if (err_check((pLog_buffer = (char*)calloc(gLog_buffer_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    char* pLog_buffer = gLog_buffer;
+
+    if (err_check((gLog_buffer = (char*)calloc(gLog_buffer_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
+    
+    append_to_log("Lookup   : ");
+    append_to_log(pHost_IP);
+    append_to_log("\n");
 
     if (err_check((pInputs->hostname_ip_lookup = (char*)calloc(null_strlen(pHost_IP), sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
@@ -168,24 +174,47 @@ int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, c
     if (err_check((strcpy_s(pInputs->dns_server_ip, null_strlen(pDNS_server), pDNS_server)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
+    pInputs->tx_id = 0;
+    pInputs->dns_type = 0;
+    pInputs->dns_pkt_size = 0;
+
     return SUCCESS;
 }
 
-int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer)
+int32_t run_DNS(Inputs_t* pInputs)
 {
+    int32_t status = SUCCESS;
     char* dns_pkt = NULL;
-    uint32_t dns_pkt_size = 0;
+    char recv_buff[MAX_DNS_LEN];
+    char log_msg[LOG_LINE_SIZE];
 
-    if (create_packet(&dns_pkt, pInputs, &dns_pkt_size) != SUCCESS)
+    if (create_packet(&dns_pkt, pInputs) != SUCCESS)
         return FAIL;
 
-    send_query(dns_pkt, dns_pkt_size);
+    
+    int32_t bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), 
+                                        "Query    : %s, type %d, TXID 0x%04X\nServer   : %s\n********************************\n", 
+                                        pInputs->hostname_ip_lookup, 
+                                        pInputs->dns_type, 
+                                        pInputs->tx_id,
+                                        pInputs->dns_server_ip
+                                        );
+   
+    if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    {
+        kill_pointer((void**)& dns_pkt);
+        return FAIL;
+    }
+    
+    append_to_log(log_msg);
+    if (send_query_and_get_response(pInputs, dns_pkt, recv_buff) != SUCCESS)
+        status = FAIL;
 
     kill_pointer((void**) &dns_pkt);
-    return SUCCESS;
+    return status;
 }
 
-int32_t create_packet(char** ppPacket, Inputs_t* pInputs, uint32_t* pPacket_size)
+int32_t create_packet(char** ppPacket, Inputs_t* pInputs)
 {
     char* pPacket = NULL;
     //   DNS Transmit pkt
@@ -214,7 +243,6 @@ int32_t create_packet(char** ppPacket, Inputs_t* pInputs, uint32_t* pPacket_size
     // ex: "www.yahoo.com" -> qry_str = "3www5yahoo3com"
     uint32_t host_len = null_strlen(pInputs->hostname_ip_lookup) + 1; // prepend one byte for the "3" in "3www5yahoo3com"
     uint32_t pkt_size = sizeof(Fixed_DNS_Header_t) + host_len + sizeof(DNS_Query_Header_t);
-    *pPacket_size = pkt_size;
 
     if (err_check((pPacket = (char*)calloc(pkt_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return FAIL;
@@ -241,6 +269,11 @@ int32_t create_packet(char** ppPacket, Inputs_t* pInputs, uint32_t* pPacket_size
     dns_query_hdr->qry_class = htons(DNS_INET);
 
     *ppPacket = pPacket;
+
+    // Update status
+    pInputs->tx_id = ntohs(dns_fixed_hdr->tx_id);
+    pInputs->dns_type = ntohs(dns_query_hdr->qry_type);
+    pInputs->dns_pkt_size = pkt_size;
     
     return SUCCESS;
 }
@@ -282,13 +315,17 @@ int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len
     return SUCCESS;
 }
 
-int32_t send_query(char* pPacket, uint32_t aPacket_size)
+int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, char* pRecv_buff)
 {
     int32_t status = SUCCESS;
-    char recv_buff[MAX_DNS_LEN];
     sockaddr_in sender_addr;
     int sender_addr_len = sizeof(sender_addr);
     int32_t available = NULL;
+    char log_msg[LOG_LINE_SIZE];
+    int32_t bytes_written;
+    int32_t bytes_recv;
+    clock_t time_start;
+    clock_t time_stop;
 
     //Initialize WinSock; once per program run
     WSADATA wsaData;
@@ -321,21 +358,35 @@ int32_t send_query(char* pPacket, uint32_t aPacket_size)
     local.sin_port = htons(0);
     if (bind(dns_sock, (struct sockaddr*) &local, sizeof(local)) == SOCKET_ERROR)
     {
-        printf("Socket Error: %d\n", WSAGetLastError());
+        bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "socket error: %d\n", WSAGetLastError());
+        err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__);
+        append_to_log(log_msg);
         return FAIL;
     }
 
     struct sockaddr_in remote;
     memset(&remote, 0, sizeof(remote));
     remote.sin_family = AF_INET;
-    remote.sin_addr.s_addr = inet_addr("8.8.8.8");      // Google DNS Server
-    remote.sin_port = htons(53);                        // DNS port on server
+    remote.sin_addr.s_addr = inet_addr(pInputs->dns_server_ip);      // Google DNS Server
+    remote.sin_port = htons(53);                                     // DNS port on server
     
     for (int attempts = 0; attempts < MAX_ATTEMPTS; attempts++)
     {
-        if (sendto(dns_sock, pPacket, aPacket_size, 0, (struct sockaddr*) &remote, sizeof(remote)) == SOCKET_ERROR)
+        bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char),
+                                    "Attempt %d with %d bytes... ",
+                                    attempts,
+                                    pInputs->dns_pkt_size
+                                    );
+
+        if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+            status = FAIL;
+
+        append_to_log(log_msg);
+        if (sendto(dns_sock, pPacket, pInputs->dns_pkt_size, 0, (struct sockaddr*) &remote, sizeof(remote)) == SOCKET_ERROR)
         {
-            printf("Socket Error: %d\n", WSAGetLastError());
+            bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "socket error: %d\n", WSAGetLastError());
+            err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__);
+            append_to_log(log_msg); 
             status = FAIL;
         }
 
@@ -355,15 +406,30 @@ int32_t send_query(char* pPacket, uint32_t aPacket_size)
         FD_SET(dns_sock, &fd_reader);
         FD_SET(dns_sock, &fd_exception);
         available = select(0, &fd_reader, 0, &fd_exception, &timeout);
+        time_start = clock();
         
         if (available > 0)
         {
-            if (recvfrom(dns_sock, recv_buff, MAX_DNS_LEN * sizeof(char), 0, (SOCKADDR*)& sender_addr, &sender_addr_len) > 0)
+            bytes_recv = recvfrom(dns_sock, pRecv_buff, MAX_DNS_LEN * sizeof(char), 0, (SOCKADDR*)& sender_addr, &sender_addr_len);
+            if (bytes_recv > 0)
             {
+                time_stop = clock();
+                bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "response in %d ms with %d bytes\n", time_stop - time_start, bytes_recv);
+                err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__);
+                append_to_log(log_msg);
                 status = SUCCESS;
                 break;
             }
         }
+        else    // timeout occured
+        {
+            time_stop = clock();
+            bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "timeout: %d\n", time_stop - time_start);
+            err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__);
+            append_to_log(log_msg);
+        }
+
+
         status = FAIL;
     }
     

@@ -18,6 +18,7 @@
 #define BASE_10         10
 #define ERR_TRUNCATION  -1
 #define MAX_ATTEMPTS    3
+#define LOG_LINE_SIZE       256
 
 // DNS query types 
 #define DNS_A 1         // name -> IP (forward lookup)
@@ -89,20 +90,20 @@ typedef struct Inputs {
 
 // helpers
 static char* get_char(char paSub_url[MAX_DNS_LEN], const int8_t delimiter);
-int32_t set_inputs(Inputs_t* pInputs, char* pLog_buffer, const char* pHost_IP, const char* pDNS_server);
+int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_server);
 int32_t err_check(int32_t aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num);
 void kill_pointer(void** ptr);
 int32_t null_strlen(const char* str);
 int32_t print_usage(void);
 void exit_process(void);
 int32_t starts_with(const char* start_string, const char* in_string);
-int32_t run_DNS(Inputs_t* pInputs, char* pLog_buffer);
-int32_t create_packet(char** ppPacket, Inputs_t* pInputs, uint32_t* pPacket_size);
+int32_t run_DNS(Inputs_t* pInputs);
+int32_t create_packet(char** ppPacket, Inputs_t* pInputs);
 uint16_t set_query_type(Inputs_t* pInputs);
 
 int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len);
 
-int32_t send_query(char* pPacket, uint32_t aPacket_size);
+int32_t send_query_and_get_response(Inputs_t* pInput, char* pPacket, char* pRecv_buff);
 int32_t append_to_log(const char* pAppend);
 void print_log(const char* pLog_buffer);
 
