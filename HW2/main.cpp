@@ -24,6 +24,7 @@ int32_t main(int32_t argc, char* argv[])
    // _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_LEAK_CHECK_DF);
 
     int32_t status = SUCCESS;
+    char recv_buff[MAX_DNS_LEN] = { 0 };
     if (argc != VALID_NUM_ARGS || strlen(argv[1]) <= 0 || strlen(argv[2]) <= 0 || inet_addr(argv[2]) == INADDR_NONE)
         return print_usage();
 
@@ -33,8 +34,27 @@ int32_t main(int32_t argc, char* argv[])
         return terminate_safely(&inputs);
         
     // TODO: print out the keys values/inputs
-    status = run_DNS(&inputs);
+    status = run_DNS_Lookup(&inputs, recv_buff);
+    if (status == SUCCESS)
+        parse_DNS_response(recv_buff);
+    
     print_log(gLog_buffer);
+    for (int i = 0; i < inputs.bytes_recv; i++)
+    {
+        if (i == 6)
+            printf("\n");
+        else if ((i-6) % (16) == 0 && i)
+            printf("\n");
+        else if ((i-6) % (8) == 0)
+            printf("\t");
+
+        //if((recv_buff[i] < 'z' && recv_buff[i] > 'a') || (recv_buff[i] < 'Z' && recv_buff[i] > 'A') || recv_buff[i] == '.')
+        //    printf(" %c ", recv_buff[i]);
+        //else
+            printf("%02X ", (uint8_t)(recv_buff[i]));
+        
+    }
+        
     terminate_safely(&inputs);
 
     return status;

@@ -20,7 +20,7 @@ void exit_process()
 #endif // NO_QUIT
 }
 
-int32_t starts_with(const char* start_string, const char* in_string)
+static int32_t starts_with(const char* start_string, const char* in_string)
 {
     return !strncmp(start_string, in_string, strlen(start_string));
 }
@@ -34,6 +34,7 @@ int32_t err_check(int32_t aTest, const char* aMsg, const char* aFile, const char
     if (aFile == NULL || aFunction == NULL)
         return SUCCESS;
 
+    char log_msg[LOG_LINE_SIZE];
     const char* fname = ((char*)aFile - 1);
     const char* exit_test;
     char* aFile_end = (char*)aFile + strlen(aFile) - 1;
@@ -52,8 +53,10 @@ int32_t err_check(int32_t aTest, const char* aMsg, const char* aFile, const char
         if (fname < aFile || fname > aFile_end)
             fname = aFile; // something went wrong
         
-        printf("\nERROR:%s:%u:%s", fname, aLine_num, aMsg);
-            return FAIL;
+        int32_t bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "\nERROR:%s:%u:%s", fname, aLine_num, aMsg);
+        append_to_log(log_msg);
+        //printf("\nERROR:%s:%u:%s", fname, aLine_num, aMsg);
+        return FAIL;
     }
     return SUCCESS;
 }
@@ -177,20 +180,19 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
     pInputs->tx_id = 0;
     pInputs->dns_type = 0;
     pInputs->dns_pkt_size = 0;
+    pInputs->bytes_recv = -1;
 
     return SUCCESS;
 }
 
-int32_t run_DNS(Inputs_t* pInputs)
+int32_t run_DNS_Lookup(Inputs_t* pInputs, char* pRecv_buff)
 {
     int32_t status = SUCCESS;
     char* dns_pkt = NULL;
-    char recv_buff[MAX_DNS_LEN];
     char log_msg[LOG_LINE_SIZE];
 
-    if (create_packet(&dns_pkt, pInputs) != SUCCESS)
+    if ((dns_pkt = create_packet(pInputs)) == NULL)
         return FAIL;
-
     
     int32_t bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), 
                                         "Query    : %s, type %d, TXID 0x%04X\nServer   : %s\n********************************\n", 
@@ -202,19 +204,24 @@ int32_t run_DNS(Inputs_t* pInputs)
    
     if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
     {
-        kill_pointer((void**)& dns_pkt);
+        kill_pointer((void**) &dns_pkt);
         return FAIL;
     }
     
     append_to_log(log_msg);
-    if (send_query_and_get_response(pInputs, dns_pkt, recv_buff) != SUCCESS)
+    if (send_query_and_get_response(pInputs, dns_pkt, pRecv_buff) != SUCCESS)
         status = FAIL;
 
     kill_pointer((void**) &dns_pkt);
     return status;
 }
 
-int32_t create_packet(char** ppPacket, Inputs_t* pInputs)
+int32_t parse_DNS_response(char* aRecv_buff)
+{
+    return SUCCESS;
+}
+
+static char* create_packet(Inputs_t* pInputs)
 {
     char* pPacket = NULL;
     //   DNS Transmit pkt
@@ -245,7 +252,7 @@ int32_t create_packet(char** ppPacket, Inputs_t* pInputs)
     uint32_t pkt_size = sizeof(Fixed_DNS_Header_t) + host_len + sizeof(DNS_Query_Header_t);
 
     if (err_check((pPacket = (char*)calloc(pkt_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
-        return FAIL;
+        return NULL;
 
     Fixed_DNS_Header_t* dns_fixed_hdr = (Fixed_DNS_Header_t*) pPacket;
     DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*)(pPacket + pkt_size - sizeof(DNS_Query_Header_t));
@@ -263,32 +270,30 @@ int32_t create_packet(char** ppPacket, Inputs_t* pInputs)
     if (set_query_string(pInputs, dns_query_str, host_len) != SUCCESS)
     {
         kill_pointer((void**) &pPacket);
-        return FAIL;
+        return NULL;
     }
     dns_query_hdr->qry_type = htons(set_query_type(pInputs));
     dns_query_hdr->qry_class = htons(DNS_INET);
-
-    *ppPacket = pPacket;
 
     // Update status
     pInputs->tx_id = ntohs(dns_fixed_hdr->tx_id);
     pInputs->dns_type = ntohs(dns_query_hdr->qry_type);
     pInputs->dns_pkt_size = pkt_size;
     
-    return SUCCESS;
+    return pPacket;
 }
 
-uint16_t set_query_type(Inputs_t* pInputs)
+static uint16_t set_query_type(Inputs_t* pInputs)
 {
     unsigned long IP = inet_addr(pInputs->hostname_ip_lookup);
 
-    if (IP == INADDR_NONE)  // we were given a hostname
-        return DNS_A;       // forward lookup
+    if (IP == INADDR_NONE)  // we were given a hostname not an IP
+        return DNS_A;       // forward lookup on hostname; Hostname -> IP
     else
-        return DNS_PTR;     // reverse lookup
+        return DNS_PTR;     // reverse lookup on IP; IP -> Hostname
 }
 
-int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len)
+static int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len)
 {
     if (strlen(pInputs->hostname_ip_lookup) <= 0 || aHost_len <= 0)
         return FAIL;
@@ -315,7 +320,7 @@ int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len
     return SUCCESS;
 }
 
-int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, char* pRecv_buff)
+static int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, char* pRecv_buff)
 {
     int32_t status = SUCCESS;
     sockaddr_in sender_addr;
@@ -368,7 +373,7 @@ int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, char* pRec
     memset(&remote, 0, sizeof(remote));
     remote.sin_family = AF_INET;
     remote.sin_addr.s_addr = inet_addr(pInputs->dns_server_ip);      // Google DNS Server
-    remote.sin_port = htons(53);                                     // DNS port on server
+    remote.sin_port = htons(DNS_PORT);                               // DNS port on server
     
     for (int attempts = 0; attempts < MAX_ATTEMPTS; attempts++)
     {
@@ -410,11 +415,11 @@ int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, char* pRec
         
         if (available > 0)
         {
-            bytes_recv = recvfrom(dns_sock, pRecv_buff, MAX_DNS_LEN * sizeof(char), 0, (SOCKADDR*)& sender_addr, &sender_addr_len);
-            if (bytes_recv > 0)
+            pInputs->bytes_recv = recvfrom(dns_sock, pRecv_buff, MAX_DNS_LEN * sizeof(char), 0, (SOCKADDR*)& sender_addr, &sender_addr_len);
+            if (pInputs->bytes_recv > 0)
             {
                 time_stop = clock();
-                bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "response in %d ms with %d bytes\n", time_stop - time_start, bytes_recv);
+                bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "response in %d ms with %d bytes\n", time_stop - time_start, pInputs->bytes_recv);
                 err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__);
                 append_to_log(log_msg);
                 status = SUCCESS;
@@ -429,16 +434,11 @@ int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, char* pRec
             append_to_log(log_msg);
         }
 
-
         status = FAIL;
-    }
-    
-    if (status == SUCCESS)
-    {
-        // TODO: Parse Resonse
     }
     
     return status;
 }
+
 
 
