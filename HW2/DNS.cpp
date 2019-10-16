@@ -77,6 +77,26 @@ int32_t null_strlen(const char* str)
     return (int32_t)(strlen(str) + 1);
 }
 
+void print_log(const char* pLog_buffer)
+{
+    printf("%s\n", pLog_buffer);
+}
+
+int32_t append_to_log(const char* pAppend)
+{
+    int32_t status = FAIL;
+    
+    if (pAppend)
+    {
+        if ((strcat_s(gLog_buffer, gLog_buffer_size * sizeof(char), pAppend)) != SUCCESS)
+            printf("Need to realloc pLog_buffer. Error on log strcat");
+        else
+            status = SUCCESS;
+    }
+
+    return status;
+}
+
 // ERROR CHECK COMPLETED
 int32_t print_usage(void)
 {
@@ -254,7 +274,7 @@ int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len
         if (current_token >= (pQuery_str + 1) && current_token < (pQuery_str + aHost_len - 1))
         {
             //bytes_written = _snprintf_s(&current_token[-1], (size_t)null_strlen(current_token) + 1, _TRUNCATE, "%u%s", (unsigned int)strlen(current_token)-'0', current_token);
-            current_token[-1] = strlen(current_token);
+            current_token[-1] = (char) strlen(current_token);
             if (err_check(bytes_written >= null_strlen(current_token) + 1 || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__ - 1) != SUCCESS)
                 return FAIL;
         }

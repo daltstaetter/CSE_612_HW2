@@ -24,7 +24,7 @@ int32_t main(int32_t argc, char* argv[])
    // _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_LEAK_CHECK_DF);
 
     int32_t status = SUCCESS;
-    if (argc != VALID_NUM_ARGS || strlen(argv[1]) <= 0 || strlen(argv[2]) <= 0)
+    if (argc != VALID_NUM_ARGS || strlen(argv[1]) <= 0 || strlen(argv[2]) <= 0 || inet_addr(argv[2]) == INADDR_NONE)
         return print_usage();
 
     Inputs_t inputs;
@@ -34,10 +34,14 @@ int32_t main(int32_t argc, char* argv[])
         
     // TODO: print out the keys values/inputs
     status = run_DNS(&inputs, gLog_buffer);
+    print_log(gLog_buffer);
     terminate_safely(&inputs);
 
     return status;
 }
+
+
+
 
 int32_t terminate_safely(Inputs_t* pInputs)
 {

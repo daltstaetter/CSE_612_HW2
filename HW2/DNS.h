@@ -94,6 +94,8 @@ uint16_t set_query_type(Inputs_t* pInputs);
 int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len);
 
 int32_t send_query(char* pPacket, uint32_t aPacket_size);
+int32_t append_to_log(const char* pAppend);
+void print_log(const char* pLog_buffer);
 
 
 
