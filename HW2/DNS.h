@@ -48,7 +48,7 @@
 #define DNS_RD          (1 << 8)        // recursion desired 
 #define DNS_RA          (1 << 7)        // recursion available 
 
-
+#define COMPRESSION_MASK    0xC0
 
 
 #pragma pack(push,1)    // sets struct padding/alignment to 1 byte
@@ -80,6 +80,7 @@ typedef struct Inputs {
     uint16_t tx_id;
     uint16_t dns_pkt_size;
     int16_t bytes_recv;
+    char* query_string;
 } Inputs_t;
 
 #pragma pack(pop)       // restores old packing
@@ -87,7 +88,7 @@ typedef struct Inputs {
 // main public functions
 int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_server);
 int32_t run_DNS_Lookup(Inputs_t* pInputs, char* pRecv_buff);
-int32_t parse_DNS_response(char* aRecv_buff);
+int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff);
 
 // auxillary functions
 int32_t null_strlen(const char* str);
@@ -106,6 +107,7 @@ static char* get_char(char paSub_url[MAX_DNS_LEN], const int8_t delimiter);
 static char* create_packet(Inputs_t* pInputs);
 static int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len);
 static int32_t send_query_and_get_response(Inputs_t* pInput, char* pPacket, char* pRecv_buff);
+static int32_t recurse_string_for_commas(char* pIn_string, int32_t strlen);
 static uint16_t set_query_type(Inputs_t* pInputs);
 
 

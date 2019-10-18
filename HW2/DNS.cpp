@@ -112,7 +112,7 @@ int32_t print_usage(void)
 
 /*
 *
-*   Goal: Find substring index in  null-terminated string paSub_url
+*   Goal: Find substring index in null-terminated string paSub_url
 *         -if no match (search returns NULL), return location of null char
 */
 static char* get_char(char paSub_url[MAX_DNS_LEN], const int8_t delimiter)
@@ -181,6 +181,7 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
     pInputs->dns_type = 0;
     pInputs->dns_pkt_size = 0;
     pInputs->bytes_recv = -1;
+    pInputs->query_string = NULL;
 
     return SUCCESS;
 }
@@ -480,11 +481,42 @@ names of the corresponding hosts.
 
 
 */
-int32_t parse_DNS_response(char* aRecv_buff)
+int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff)
 {
-    Fixed_DNS_Header_t* dns_header = (Fixed_DNS_Header_t *) aRecv_buff;
+    Fixed_DNS_Header_t* dns_header = (Fixed_DNS_Header_t*) aRecv_buff;
+    char* qry_str = aRecv_buff + sizeof(Fixed_DNS_Header_t);
+    DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*)(qry_str + null_strlen(qry_str));
+    char* answer_name = (char*) ((char*)dns_query_hdr + sizeof(DNS_Query_Header_t));
+    
+    char* current_spot = NULL;
 
+    if (strcmp(pInputs->query_string, qry_str) != SUCCESS)
+    {
+        append_to_log("00:response qry string does  not match\n");
+        return FAIL;
+    }
 
+    if ((answer_name[0] & COMPRESSION_MASK) != COMPRESSION_MASK)
+    {
+        //printf("compressed\n");
+        current_spot = answer_name;
+    }
+    else // name points to query string const '\x3www\x6google\x3comNULL
+    {
+        if (recurse_string_for_commas(qry_str, null_strlen(qry_str)) != SUCCESS)
+        {
+            append_to_log("error recursing\n");
+            return FAIL;
+        }
+        qry_str++; // move past the first digit
+
+        if (strcmp(pInputs->hostname_ip_lookup, qry_str) != SUCCESS)
+        {
+            append_to_log("01:response qry string does not match\n");
+            return FAIL;
+        }
+
+    }
     return SUCCESS;
 }
 
@@ -584,6 +616,12 @@ static int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aH
                 return FAIL;
         }
     }
+
+    pInputs->query_string = (char*) calloc(aHost_len, sizeof(char));
+    
+    if (err_check((strcpy_s(pInputs->query_string, aHost_len, pQuery_str)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+        return FAIL;
+
     return SUCCESS;
 }
 
@@ -702,7 +740,29 @@ static int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, cha
 
         status = FAIL;
     }
+    closesocket(dns_sock);
     
+    return status;
+}
+
+static int32_t recurse_string_for_commas(char* pIn_string, int32_t strlen)
+{
+    int32_t status = SUCCESS;
+    uint8_t offset = pIn_string[0] + 1;
+
+    if (offset >= strlen)
+        return FAIL;
+    
+    if (pIn_string[offset] == NULL)
+    {
+        pIn_string[0] = '.';
+        return SUCCESS;
+    }
+    
+    status = recurse_string_for_commas(&pIn_string[offset], strlen - offset);
+    if (status == SUCCESS)
+        pIn_string[0] = '.';
+
     return status;
 }
 

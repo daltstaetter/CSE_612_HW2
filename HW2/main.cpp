@@ -38,7 +38,7 @@ int32_t main(int32_t argc, char* argv[])
     // TODO: print out the keys values/inputs
     status = run_DNS_Lookup(&inputs, recv_buff);
     if (status == SUCCESS)
-        parse_DNS_response(recv_buff);
+        parse_DNS_response(&inputs, recv_buff);
     
     print_log(gLog_buffer);
     for (int i = 0; i < inputs.bytes_recv; i++)
@@ -78,6 +78,7 @@ int32_t terminate_safely(Inputs_t* pInputs)
     kill_pointer((void**) &gLog_buffer);
     kill_pointer((void**) &pInputs->hostname_ip_lookup);
     kill_pointer((void**) &pInputs->dns_server_ip);
+    kill_pointer((void**) &pInputs->query_string);
 
     return FAIL;
 }
