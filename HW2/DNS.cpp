@@ -490,7 +490,8 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff)
     DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*)(qry_str + null_strlen(qry_str));
     char* answer_name = (char*) ((char*)dns_query_hdr + sizeof(DNS_Query_Header_t));
     
-    char qry_str_copy[MAX_DNS_LEN];
+    char tmp[MAX_DNS_LEN];
+    char* qry_str_copy = tmp;
     char* current_spot = NULL;
 
     if (err_check(strcmp(pInputs->query_string, qry_str), "00:response qry string does not match\n", __FILE__, __FUNCTION__, __LINE__))
@@ -508,6 +509,7 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff)
     {
         if (query_to_host_string(pInputs, qry_str_copy) != SUCCESS)
             return FAIL;
+        qry_str_copy++;
     }
     return SUCCESS;
 }
