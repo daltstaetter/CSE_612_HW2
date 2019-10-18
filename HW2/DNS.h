@@ -108,6 +108,7 @@ static char* create_packet(Inputs_t* pInputs);
 static int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aHost_len);
 static int32_t send_query_and_get_response(Inputs_t* pInput, char* pPacket, char* pRecv_buff);
 static int32_t recurse_string_for_commas(char* pIn_string, int32_t strlen);
+static int32_t query_to_host_string(Inputs_t* pInputs, char* pQuery_str);
 static uint16_t set_query_type(Inputs_t* pInputs);
 
 

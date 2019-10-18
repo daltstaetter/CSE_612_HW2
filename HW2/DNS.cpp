@@ -31,8 +31,10 @@ static int32_t starts_with(const char* start_string, const char* in_string)
  */
 int32_t err_check(int32_t aTest, const char* aMsg, const char* aFile, const char* aFunction, int32_t aLine_num)
 {
-    if (aFile == NULL || aFunction == NULL)
-        return SUCCESS;
+    if (aFile == NULL)
+        aFile = "NULL";
+    if (aFunction == NULL)
+        aFunction = "NULL";
 
     char log_msg[LOG_LINE_SIZE];
     const char* fname = ((char*)aFile - 1);
@@ -488,13 +490,14 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff)
     DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*)(qry_str + null_strlen(qry_str));
     char* answer_name = (char*) ((char*)dns_query_hdr + sizeof(DNS_Query_Header_t));
     
+    char qry_str_copy[MAX_DNS_LEN];
     char* current_spot = NULL;
 
-    if (strcmp(pInputs->query_string, qry_str) != SUCCESS)
-    {
-        append_to_log("00:response qry string does  not match\n");
+    if (err_check(strcmp(pInputs->query_string, qry_str), "00:response qry string does not match\n", __FILE__, __FUNCTION__, __LINE__))
         return FAIL;
-    }
+
+    if (err_check(strcpy_s(qry_str_copy, MAX_DNS_LEN, qry_str), "strcpy_s() fail\n", __FILE__, __FUNCTION__, __LINE__))
+        return FAIL;
 
     if ((answer_name[0] & COMPRESSION_MASK) != COMPRESSION_MASK)
     {
@@ -503,19 +506,8 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff)
     }
     else // name points to query string const '\x3www\x6google\x3comNULL
     {
-        if (recurse_string_for_commas(qry_str, null_strlen(qry_str)) != SUCCESS)
-        {
-            append_to_log("error recursing\n");
+        if (query_to_host_string(pInputs, qry_str_copy) != SUCCESS)
             return FAIL;
-        }
-        qry_str++; // move past the first digit
-
-        if (strcmp(pInputs->hostname_ip_lookup, qry_str) != SUCCESS)
-        {
-            append_to_log("01:response qry string does not match\n");
-            return FAIL;
-        }
-
     }
     return SUCCESS;
 }
@@ -749,8 +741,8 @@ static int32_t recurse_string_for_commas(char* pIn_string, int32_t strlen)
 {
     int32_t status = SUCCESS;
     uint8_t offset = pIn_string[0] + 1;
-
-    if (offset >= strlen)
+    
+    if (err_check(offset >= strlen, "error recursing\n", __FILE__, __FUNCTION__, __LINE__))
         return FAIL;
     
     if (pIn_string[offset] == NULL)
@@ -764,6 +756,19 @@ static int32_t recurse_string_for_commas(char* pIn_string, int32_t strlen)
         pIn_string[0] = '.';
 
     return status;
+}
+
+static int32_t query_to_host_string(Inputs_t* pInputs, char* pQuery_str)
+{
+    if (recurse_string_for_commas(pQuery_str, null_strlen(pQuery_str)) != SUCCESS)
+        return FAIL;
+
+    pQuery_str++; // move past the first digit
+
+    if (err_check(strcmp(pInputs->hostname_ip_lookup, pQuery_str) != SUCCESS, "01:response qry string does not match\n", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+        return FAIL;
+
+    return SUCCESS;
 }
 
 
