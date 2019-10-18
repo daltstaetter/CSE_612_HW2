@@ -482,6 +482,9 @@ names of the corresponding hosts.
 */
 int32_t parse_DNS_response(char* aRecv_buff)
 {
+    Fixed_DNS_Header_t* dns_header = (Fixed_DNS_Header_t *) aRecv_buff;
+
+
     return SUCCESS;
 }
 
@@ -592,7 +595,6 @@ static int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, cha
     int32_t available = NULL;
     char log_msg[LOG_LINE_SIZE];
     int32_t bytes_written;
-    int32_t bytes_recv;
     clock_t time_start;
     clock_t time_stop;
 
