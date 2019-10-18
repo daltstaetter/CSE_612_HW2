@@ -216,6 +216,270 @@ int32_t run_DNS_Lookup(Inputs_t* pInputs, char* pRecv_buff)
     return status;
 }
 
+// https://tools.ietf.org/html/rfc1035 see section 4.1
+/*
+4.1.1. Header section format
+
+    The header contains the following fields:
+
+      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                      ID                       |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |QR|   Opcode  |AA|TC|RD|RA|   Z    |   RCODE   |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                    QDCOUNT                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                    ANCOUNT                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                    NSCOUNT                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                    ARCOUNT                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+ID              A 16 bit identifier assigned by the program that
+                generates any kind of query.  This identifier is copied
+                the corresponding reply and can be used by the requester
+                to match up replies to outstanding queries.
+
+QR              A one bit field that specifies whether this message is a
+                query (0), or a response (1).
+
+OPCODE          A four bit field that specifies kind of query in this
+                message.  This value is set by the originator of a query
+                and copied into the response.  The values are:
+
+                0               a standard query (QUERY)
+
+                1               an inverse query (IQUERY)
+
+                2               a server status request (STATUS)
+
+                3-15            reserved for future use
+
+AA              Authoritative Answer - this bit is valid in responses,
+                and specifies that the responding name server is an
+                authority for the domain name in question section.
+
+                Note that the contents of the answer section may have
+                multiple owner names because of aliases.  The AA bit
+                corresponds to the name which matches the query name, 
+                or the first owner name in the answer section.
+
+RCODE           Response code - this 4 bit field is set as part of
+                responses.  The values have the following
+                interpretation:
+
+                0               No error condition
+
+                1               Format error - The name server was
+                                unable to interpret the query.
+
+                2               Server failure - The name server was
+                                unable to process this query due to a
+                                problem with the name server.
+
+                3               Name Error - Meaningful only for
+                                responses from an authoritative name
+                                server, this code signifies that the
+                                domain name referenced in the query does
+                                not exist.
+
+                4               Not Implemented - The name server does
+                                not support the requested kind of query.
+
+                5               Refused - The name server refuses to
+                                perform the specified operation for
+                                policy reasons.  For example, a name
+                                server may not wish to provide the
+                                information to the particular requester,
+                                or a name server may not wish to perform
+                                a particular operation (e.g., zone 
+                                transfer) for particular data.
+
+                6-15            Reserved for future use.
+
+QDCOUNT         an unsigned 16 bit integer specifying the number of
+                entries in the question section.
+
+ANCOUNT         an unsigned 16 bit integer specifying the number of
+                resource records in the answer section.
+
+NSCOUNT         an unsigned 16 bit integer specifying the number of name
+                server resource records in the authority records
+                section.
+
+ARCOUNT         an unsigned 16 bit integer specifying the number of
+                resource records in the additional records section.
+
+4.1.3. Resource record format
+
+The answer, authority, and additional sections all share the same
+format: a variable number of resource records, where the number of
+records is specified in the corresponding count field in the header.
+Each resource record has the following format:
+
+      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                                               |
+    /                                               /
+    /                      NAME                     /
+    |                                               |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                      TYPE                     |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                     CLASS                     |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                      TTL                      |
+    |                                               |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                   RDLENGTH                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
+    /                     RDATA                     /
+    /                                               /
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+where:
+
+NAME            a domain name to which this resource record pertains.
+
+TYPE            two octets containing one of the RR type codes.  This
+                field specifies the meaning of the data in the RDATA
+                field.
+
+CLASS           two octets which specify the class of the data in the
+                RDATA field.
+
+TTL             a 32 bit unsigned integer that specifies the time
+                interval (in seconds) that the resource record may be
+                cached before it should be discarded.  Zero values are
+                interpreted to mean that the RR can only be used for the
+                transaction in progress, and should not be cached.
+
+
+
+RDLENGTH        an unsigned 16 bit integer that specifies the length in
+                octets of the RDATA field.
+
+RDATA           a variable length string of octets that describes the
+                resource.  The format of this information varies
+                according to the TYPE and CLASS of the resource record.
+                For example, the if the TYPE is A and the CLASS is IN,
+                the RDATA field is a 4 octet ARPA Internet address.
+
+
+4.1.4. Message compression
+
+In order to reduce the size of messages, the domain system utilizes a
+compression scheme which eliminates the repetition of domain names in a
+message.  In this scheme, an entire domain name or a list of labels at
+the end of a domain name is replaced with a pointer to a prior occurance
+of the same name.
+
+The pointer takes the form of a two octet sequence:
+
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    | 1  1|                OFFSET                   |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+The first two bits are ones.  This allows a pointer to be distinguished
+from a label, since the label must begin with two zero bits because
+labels are restricted to 63 octets or less.  (The 10 and 01 combinations
+are reserved for future use.)  The OFFSET field specifies an offset from
+the start of the message (i.e., the first octet of the ID field in the
+domain header).  A zero offset specifies the first byte of the ID field,
+etc.
+
+The compression scheme allows a domain name in a message to be
+represented as either:
+
+   - a sequence of labels ending in a zero octet
+
+   - a pointer
+
+   - a sequence of labels ending with a pointer
+
+Pointers can only be used for occurances of a domain name where the
+format is not class specific.  If this were not the case, a name server
+or resolver would be required to know the format of all RRs it handled.
+As yet, there are no such cases, but they may occur in future RDATA
+formats.
+
+If a domain name is contained in a part of the message subject to a
+length field (such as the RDATA section of an RR), and compression is
+used, the length of the compressed name is used in the length
+calculation, rather than the length of the expanded name.
+
+Programs are free to avoid using pointers in messages they generate,
+although this will reduce datagram capacity, and may cause truncation.
+However all programs are required to understand arriving messages that
+contain pointers.
+
+3.3.12. PTR RDATA format
+
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    /                   PTRDNAME                    /
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+where:
+
+PTRDNAME        A <domain-name> which points to some location in the
+                domain name space.
+
+PTR records cause no additional section processing.  These RRs are used
+in special domains to point to some other location in the domain space.
+These records are simple data, and don't imply any special processing
+similar to that performed by CNAME, which identifies aliases.  See the
+description of the IN-ADDR.ARPA domain for an example.
+
+3.5. IN-ADDR.ARPA domain
+
+The Internet uses a special domain to support gateway location and
+Internet address to host mapping.  Other classes may employ a similar
+strategy in other domains.  The intent of this domain is to provide a
+guaranteed method to perform host address to host name mapping, and to
+facilitate queries to locate all gateways on a particular network in the
+Internet.
+
+Note that both of these services are similar to functions that could be
+performed by inverse queries; the difference is that this part of the
+domain name space is structured according to address, and hence can
+guarantee that the appropriate data can be located without an exhaustive
+search of the domain space.
+
+The domain begins at IN-ADDR.ARPA and has a substructure which follows
+the Internet addressing structure.
+
+Domain names in the IN-ADDR.ARPA domain are defined to have up to four
+labels in addition to the IN-ADDR.ARPA suffix.  Each label represents
+one octet of an Internet address, and is expressed as a character string
+for a decimal value in the range 0-255 (with leading zeros omitted
+except in the case of a zero octet which is represented by a single
+zero).
+
+Host addresses are represented by domain names that have all four labels
+specified.  Thus data for Internet address 10.2.0.52 is located at
+domain name 52.0.2.10.IN-ADDR.ARPA.  The reversal, though awkward to
+read, allows zones to be delegated which are exactly one network of
+address space.  For example, 10.IN-ADDR.ARPA can be a zone containing
+data for the ARPANET, while 26.IN-ADDR.ARPA can be a separate zone for
+MILNET.  Address nodes are used to hold pointers to primary host names
+in the normal domain space.
+
+Network numbers correspond to some non-terminal nodes at various depths
+in the IN-ADDR.ARPA domain, since Internet network numbers are either 1,
+2, or 3 octets.  Network nodes are used to hold pointers to the primary
+host names of gateways attached to that network.  Since a gateway is, by
+definition, on more than one network, it will typically have two or more
+network nodes which point at it.  Gateways will also have host level
+pointers at their fully qualified addresses.
+
+Both the gateway pointers at network nodes and the normal host pointers
+at full address nodes use the PTR RR to point back to the primary domain
+names of the corresponding hosts.
+
+
+*/
 int32_t parse_DNS_response(char* aRecv_buff)
 {
     return SUCCESS;
