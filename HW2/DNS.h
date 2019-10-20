@@ -15,20 +15,24 @@
 #define SUCCESS         0
 #define FAIL            1
 #define MAX_DNS_LEN     512
+#define MAX_HOST_LEN    256
 #define BASE_10         10
 #define ERR_TRUNCATION  -1
 #define MAX_ATTEMPTS    3
 #define LOG_LINE_SIZE   256
+#define TYPE_LEN        8
+#define MAX_DNS_A_LEN   16    // strlen("255.255.255.255") + 1
 
 #define DNS_PORT        53
 
 // DNS query types 
-#define DNS_A           1       // name -> IP (forward lookup)
+#define DNS_A           1       // name -> IPv4 (forward lookup)
 #define DNS_NS          2       // name server 
 #define DNS_CNAME       5       // canonical name 
 #define DNS_PTR         12      // IP -> name (reverse lookup)
 #define DNS_HINFO       13      // host info/SOA 
 #define DNS_MX          15      // mail exchange 
+#define DNS_AAAA        28      // name -> IPv6 (forward lookup)
 #define DNS_AXFR        252     // request for zone transfer 
 #define DNS_ANY         255     // all records 
 
@@ -95,9 +99,9 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff);
 
 static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pQuery_string_response);
 
-static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char* output_string, char* temp_buff);
+static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char** output_string, char* temp_buff);
 
-static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField);
+static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField, uint16_t aData_length);
 
 // auxillary functions
 int32_t null_strlen(const char* str);
@@ -118,10 +122,13 @@ static int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aH
 static int32_t send_query_and_get_response(Inputs_t* pInput, char* pPacket, char* pRecv_buff);
 static int32_t recurse_string_for_commas(char* pIn_string, int32_t strlen);
 static int32_t query_to_host_string(Inputs_t* pInputs, char* pQuery_str);
+static int32_t get_record_type(uint16_t record, char* val, uint32_t length);
 static uint16_t set_query_type(Inputs_t* pInputs);
 static int32_t update_jumps();
 static int32_t check_response_string(Inputs_t* pInputs, char* pRecv_buff);
-
-
+static int32_t getA_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
+static int32_t getNS_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data);
+static int32_t getCNAME_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data);
+static int32_t getPTR_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data);
 
 
