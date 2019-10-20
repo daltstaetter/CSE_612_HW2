@@ -158,6 +158,9 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
     assert(strlen(pHost_IP) > 0);
     assert(strlen(pDNS_server) > 0);
 
+    const int host_length = null_strlen(pHost_IP);
+    const int dns_length = null_strlen(pDNS_server);
+
     char* pLog_buffer = gLog_buffer;
 
     if (err_check((gLog_buffer = (char*)calloc(gLog_buffer_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
@@ -167,13 +170,13 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
     append_to_log(pHost_IP);
     append_to_log("\n");
 
-    if (err_check((pInputs->hostname_ip_lookup = (char*)calloc(null_strlen(pHost_IP), sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((pInputs->hostname_ip_lookup = (char*)calloc(host_length, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
     if (err_check((pInputs->dns_server_ip = (char*)calloc(null_strlen(pDNS_server), sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
-    if (err_check((strcpy_s(pInputs->hostname_ip_lookup, null_strlen(pHost_IP), pHost_IP)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+    if (err_check((strcpy_s(pInputs->hostname_ip_lookup, host_length, pHost_IP)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
         return terminate_safely(pInputs);
 
     if (err_check((strcpy_s(pInputs->dns_server_ip, null_strlen(pDNS_server), pDNS_server)) != SUCCESS, "strcpy() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
@@ -184,6 +187,37 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
     pInputs->dns_pkt_size = 0;
     pInputs->bytes_recv = -1;
     pInputs->query_string = NULL;
+
+    // check for valid inputs
+    if (host_length > 256 || null_strlen(pDNS_server) > 256) // too long
+    {
+        print_usage();
+        return FAIL;
+    }
+    if (set_query_type(pInputs) == DNS_A) // ensure it only contains [-a-zA-Z0-9] doesn't start with '-'
+    {
+        for (int i = 0; i < host_length; i++)
+        {
+            int p = isalnum(pHost_IP[i]);
+            if (!i || i == (host_length - 1))
+            {
+                if (pHost_IP[i] == '-') // cannot start or end with '-'
+                {
+                    print_usage();
+                    return FAIL;
+                }
+            }
+            //else if (pHost_IP[i] == '-' || pHost_IP[i] == '.')
+            //{
+            //    continue;
+            //}
+            else if (isalnum(pHost_IP[i]) == 0 && (pHost_IP[i] != '-' && pHost_IP[i] != '.'))
+            {
+                print_usage();
+                return FAIL;
+            }
+        }
+    }
 
     return SUCCESS;
 }
@@ -517,6 +551,7 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff)
 static char* create_packet(Inputs_t* pInputs)
 {
     char* pPacket = NULL;
+    /*
     //   DNS Transmit pkt
     //  __________________
     // | Fixed DNS HEADER | 12-bytes
@@ -529,7 +564,6 @@ static char* create_packet(Inputs_t* pInputs)
     // |__________________|
     // |   Extra ResRec   | var_length
     // |__________________|
-
     //     Subcomponents
     //  ------------------
     // |  TXID  |  FLAGS  | 4-bytes
@@ -539,6 +573,7 @@ static char* create_packet(Inputs_t* pInputs)
     // | host_IP_qry_str  | len = strlen(host_IP) + 2 (for first count and Null char)
     // | qType  | qClass  | 4-bytes
     //  ------------------
+    */
 
     // ex: "www.yahoo.com" -> qry_str = "3www5yahoo3com"
     uint32_t host_len = null_strlen(pInputs->hostname_ip_lookup) + 1; // prepend one byte for the "3" in "3www5yahoo3com"
