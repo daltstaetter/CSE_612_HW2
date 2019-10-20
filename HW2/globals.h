@@ -17,5 +17,7 @@
 // Global variables
 char* gLog_buffer;
 uint32_t gLog_buffer_size = LOG_INIT_SIZE;
+int32_t gNum_jumps = 0;
+int32_t gMax_num_jumps = 0;
 
 #endif // !GLOBALS1

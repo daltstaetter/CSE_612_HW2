@@ -49,6 +49,7 @@
 #define DNS_RA          (1 << 7)        // recursion available 
 
 #define COMPRESSION_MASK    0xC0
+#define RCODE_MASK          0x000F
 
 
 #pragma pack(push,1)    // sets struct padding/alignment to 1 byte
@@ -88,13 +89,17 @@ typedef struct Inputs {
 // main public functions
 int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_server);
 int32_t run_DNS_Lookup(Inputs_t* pInputs, char* pRecv_buff);
-int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff);
+int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff);
+
+static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pQuery_string_response);
+
+static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField);
 
 // auxillary functions
 int32_t null_strlen(const char* str);
 int32_t print_usage(void);
 int32_t append_to_log(const char* pAppend);
-void print_log(const char* pLog_buffer);
+void print_log();
 void kill_pointer(void** ptr);
 
 // helpers
@@ -110,6 +115,8 @@ static int32_t send_query_and_get_response(Inputs_t* pInput, char* pPacket, char
 static int32_t recurse_string_for_commas(char* pIn_string, int32_t strlen);
 static int32_t query_to_host_string(Inputs_t* pInputs, char* pQuery_str);
 static uint16_t set_query_type(Inputs_t* pInputs);
+static int32_t update_jumps();
+static int32_t check_response_string(Inputs_t* pInputs, char* pRecv_buff);
 
 
 

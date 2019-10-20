@@ -37,10 +37,11 @@ int32_t main(int32_t argc, char* argv[])
         
     // TODO: print out the keys values/inputs
     status = run_DNS_Lookup(&inputs, recv_buff);
+
     if (status == SUCCESS)
         parse_DNS_response(&inputs, recv_buff);
     
-    print_log(gLog_buffer);
+    print_log();
     for (int i = 0; i < inputs.bytes_recv; i++)
     {
         if (i == 6)

@@ -12,6 +12,8 @@
 
 extern char* gLog_buffer;
 extern uint32_t gLog_buffer_size;
+extern int32_t gNum_jumps;
+extern int32_t gMax_num_jumps;
 
 void exit_process()
 {
@@ -55,7 +57,7 @@ int32_t err_check(int32_t aTest, const char* aMsg, const char* aFile, const char
         if (fname < aFile || fname > aFile_end)
             fname = aFile; // something went wrong
         
-        int32_t bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "\nERROR:%s:%u:%s", fname, aLine_num, aMsg);
+        int32_t bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "\nERROR:%s:%u:%s\n", fname, aLine_num, aMsg);
         append_to_log(log_msg);
         //printf("\nERROR:%s:%u:%s", fname, aLine_num, aMsg);
         return FAIL;
@@ -82,9 +84,12 @@ int32_t null_strlen(const char* str)
     return (int32_t)(strlen(str) + 1);
 }
 
-void print_log(const char* pLog_buffer)
+void print_log()
 {
-    printf("%s\n", pLog_buffer);
+    printf("%s\n", gLog_buffer);
+    kill_pointer((void**) &gLog_buffer);
+    if (err_check((gLog_buffer = (char*)calloc(gLog_buffer_size, sizeof(char))) == NULL, "calloc() failed", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
+        printf("gLoc calloc failed\n");
 }
 
 int32_t append_to_log(const char* pAppend)
@@ -187,6 +192,9 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
     pInputs->dns_pkt_size = 0;
     pInputs->bytes_recv = -1;
     pInputs->query_string = NULL;
+    
+    gNum_jumps = 0;
+    gMax_num_jumps = 0;
 
     // check for valid inputs
     if (host_length > 256 || null_strlen(pDNS_server) > 256) // too long
@@ -196,22 +204,15 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
     }
     if (set_query_type(pInputs) == DNS_A) // ensure it only contains [-a-zA-Z0-9] doesn't start with '-'
     {
-        for (int i = 0; i < host_length; i++)
+        if (pHost_IP[0] == '-' || pHost_IP[strlen(pHost_IP)-1] == '-') // cannot start or end with '-'
         {
-            int p = isalnum(pHost_IP[i]);
-            if (!i || i == (host_length - 1))
-            {
-                if (pHost_IP[i] == '-') // cannot start or end with '-'
-                {
-                    print_usage();
-                    return FAIL;
-                }
-            }
-            //else if (pHost_IP[i] == '-' || pHost_IP[i] == '.')
-            //{
-            //    continue;
-            //}
-            else if (isalnum(pHost_IP[i]) == 0 && (pHost_IP[i] != '-' && pHost_IP[i] != '.'))
+            print_usage();
+            return FAIL;
+        }
+
+        for (int i = 0; i < strlen(pHost_IP); i++)
+        {
+            if (isalnum(pHost_IP[i]) == 0 && (pHost_IP[i] != '-' && pHost_IP[i] != '.'))
             {
                 print_usage();
                 return FAIL;
@@ -250,6 +251,7 @@ int32_t run_DNS_Lookup(Inputs_t* pInputs, char* pRecv_buff)
         status = FAIL;
 
     kill_pointer((void**) &dns_pkt);
+    print_log();
     return status;
 }
 
@@ -517,37 +519,177 @@ names of the corresponding hosts.
 
 
 */
-int32_t parse_DNS_response(Inputs_t* pInputs, char* aRecv_buff)
+int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
 {
-    Fixed_DNS_Header_t* dns_header = (Fixed_DNS_Header_t*) aRecv_buff;
-    char* qry_str = aRecv_buff + sizeof(Fixed_DNS_Header_t);
-    DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*)(qry_str + null_strlen(qry_str));
+    Fixed_DNS_Header_t* dns_header = (Fixed_DNS_Header_t*) pRecv_buff;
+    char* qry_str_response = pRecv_buff + sizeof(Fixed_DNS_Header_t);
+    DNS_Query_Header_t* dns_query_hdr = (DNS_Query_Header_t*)(qry_str_response + null_strlen(qry_str_response));
     char* answer_name = (char*) ((char*)dns_query_hdr + sizeof(DNS_Query_Header_t));
     
-    char tmp[MAX_DNS_LEN];
-    char* qry_str_copy = tmp;
     char* current_spot = NULL;
+    char log_msg[LOG_LINE_SIZE] = { 0 };
+    char tmp[MAX_DNS_LEN] = { 0 };
+    char name[MAX_DNS_LEN] = { 0 };
+    char* qry_str_copy = tmp;
 
-    if (err_check(strcmp(pInputs->query_string, qry_str), "00:response qry string does not match\n", __FILE__, __FUNCTION__, __LINE__))
+    //-------------------------------------------------
+    int32_t  bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "  TXID 0x%.4X flags 0x%.4X questions %u answers %u authority %u additional %u\n  %s with Rcode = %u\n", 
+                                        ntohs(dns_header->tx_id), 
+                                        ntohs(dns_header->flags),
+                                        ntohs(dns_header->num_questions),
+                                        ntohs(dns_header->num_answers),
+                                        ntohs(dns_header->num_authority),
+                                        ntohs(dns_header->num_additional),
+                                        (ntohs(dns_header->flags) & RCODE_MASK) ? "failed" : "succeeded",
+                                        ntohs(dns_header->flags) & RCODE_MASK);
+
+    if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
+        return FAIL;
+    append_to_log(log_msg);
+    //-------------------------------------------------
+
+    if (ntohs(dns_header->flags) & RCODE_MASK) // ERROR in DNS Reply
         return FAIL;
 
-    if (err_check(strcpy_s(qry_str_copy, MAX_DNS_LEN, qry_str), "strcpy_s() fail\n", __FILE__, __FUNCTION__, __LINE__))
+    if (err_check(strcmp(pInputs->query_string, qry_str_response), "00:response qry string does not match\n", __FILE__, __FUNCTION__, __LINE__))
         return FAIL;
 
-    if ((answer_name[0] & COMPRESSION_MASK) != COMPRESSION_MASK)
-    {
-        //printf("compressed\n");
-        current_spot = answer_name;
-    }
-    else // name points to query string const '\x3www\x6google\x3comNULL
-    {
+    if (err_check(strcpy_s(qry_str_copy, MAX_DNS_LEN, qry_str_response), "strcpy_s() fail\n", __FILE__, __FUNCTION__, __LINE__))
+        return FAIL;
+    
+    append_to_log("  ------------ [questions] ----------\n");
+    
+    gMax_num_jumps = pInputs->bytes_recv; // used to check for if we get into a loop for reading compressed values
+    
+    {   // Get Query name
+        if ((answer_name[0] & COMPRESSION_MASK) == COMPRESSION_MASK)
+        {
+            //printf("compressed\n");
+            current_spot = answer_name;
+            uint32_t next_offset = (uint16_t)(((uint8_t)answer_name[0] << 10) + answer_name[1]); //answer_name[0] & !COMPRESSION_MASK;
+            
+            if (get_compressed_field(pInputs, pRecv_buff, next_offset, name) != SUCCESS)
+                return FAIL;
+
+            qry_str_copy = name;
+        }
+        //else // name points to query string const '\x3www\x6google\x3comNULL
+        //{
+        //    if (query_to_host_string(pInputs, qry_str_copy) != SUCCESS)
+        //        return FAIL;
+        //    qry_str_copy++;
+        //}
         if (query_to_host_string(pInputs, qry_str_copy) != SUCCESS)
             return FAIL;
         qry_str_copy++;
+        
+        
+        
+    }
+    
+    //-------------------------------------------------
+    bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s type %u class %u\n", qry_str_copy, dns_query_hdr->qry_type, dns_query_hdr->qry_class);
+    if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
+        return FAIL;
+    append_to_log(log_msg);
+    //-------------------------------------------------
+
+    for (int i = 0; i < dns_header->num_questions; i++)
+    {
+        //parse_ResourceRecord(pInputs, pRecv_buff, )
+    }
+    for (int i = 0; i < dns_header->num_answers; i++)
+    {
+
+    }
+    for (int i = 0; i < dns_header->num_authority; i++)
+    {
+
+    }
+    for (int i = 0; i < dns_header->num_additional; i++)
+    {
+
     }
     return SUCCESS;
 }
 
+static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff)
+{
+    
+    return SUCCESS;
+}
+
+static int32_t compression_used(char* pCurr)
+{
+    if ((pCurr[0] & COMPRESSION_MASK) == COMPRESSION_MASK)
+    {
+        //printf("compressed\n");
+        //current_spot = answer_name;
+
+    }
+}
+
+static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField)
+{
+    if (update_jumps() != SUCCESS)
+        return FAIL;
+
+    int i, j;
+
+    char* ptr = &pRecv_buff[byte_offset];
+    // I first need to check every byte to see if it is a compressed value and points
+    // to another field within the packet
+
+    for (i = 0, j = 0; ptr[i] != NULL; i++)
+    {
+        if ((ptr[i] & COMPRESSION_MASK) == COMPRESSION_MASK)
+        {   // copy from ptr[0] to ptr[i-1] into buff
+            //printf("compressed\n");
+            //current_spot = answer_name;
+            uint16_t new_offset = (((uint8_t)ptr[i] << 10) + ptr[i+1]);
+            ptr = &pRecv_buff[new_offset];
+            if (update_jumps() != SUCCESS)
+                return FAIL;
+
+            i = -1; // reset index & account for loop update
+        }
+        else
+        {
+            pField[j++] = ptr[i];
+        }
+
+        if (j > MAX_DNS_LEN - 1)
+            return FAIL;
+    }
+    
+    return SUCCESS;
+}
+
+static int32_t update_jumps()
+{
+    gNum_jumps++;
+
+    if (gNum_jumps > gMax_num_jumps)
+    {
+        append_to_log("Caught in a loop\n");
+        return FAIL;
+    }
+
+    return SUCCESS;
+}
+static int32_t check_response_string(Inputs_t* pInputs, char* pQuery_string_response)
+{
+    char tmp[MAX_DNS_LEN];
+    char* qry_str_copy = tmp;
+
+    if (err_check(strcmp(pInputs->query_string, pQuery_string_response), "00:response qry string does not match\n", __FILE__, __FUNCTION__, __LINE__))
+        return FAIL;
+
+    if (err_check(strcpy_s(qry_str_copy, MAX_DNS_LEN, pQuery_string_response), "strcpy_s() fail\n", __FILE__, __FUNCTION__, __LINE__))
+        return FAIL;
+
+    return SUCCESS;
+}
 static char* create_packet(Inputs_t* pInputs)
 {
     char* pPacket = NULL;
@@ -752,7 +894,7 @@ static int32_t send_query_and_get_response(Inputs_t* pInputs, char* pPacket, cha
             if (pInputs->bytes_recv > 0)
             {
                 time_stop = clock();
-                bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "response in %d ms with %d bytes\n", time_stop - time_start, pInputs->bytes_recv);
+                bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "response in %d ms with %d bytes", time_stop - time_start, pInputs->bytes_recv);
                 err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__);
                 append_to_log(log_msg);
                 status = SUCCESS;
