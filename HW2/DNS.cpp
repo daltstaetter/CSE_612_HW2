@@ -561,39 +561,30 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
     
     gMax_num_jumps = pInputs->bytes_recv; // used to check for if we get into a loop for reading compressed values
     
-    {   // Get Query name
-        if ((answer_name[0] & COMPRESSION_MASK) == COMPRESSION_MASK)
-        {
-            //printf("compressed\n");
-            current_spot = answer_name;
-            uint32_t next_offset = (uint16_t)(((uint8_t)answer_name[0] << 10) + answer_name[1]); //answer_name[0] & !COMPRESSION_MASK;
-            
-            if (get_compressed_field(pInputs, pRecv_buff, next_offset, name) != SUCCESS)
-                return FAIL;
+    if (parse_query_name(pInputs, pRecv_buff, answer_name, qry_str_copy, name) != SUCCESS)
+        return FAIL;
 
-            qry_str_copy = name;
-        }
-        //else // name points to query string const '\x3www\x6google\x3comNULL
-        //{
-        //    if (query_to_host_string(pInputs, qry_str_copy) != SUCCESS)
-        //        return FAIL;
-        //    qry_str_copy++;
-        //}
-        if (query_to_host_string(pInputs, qry_str_copy) != SUCCESS)
-            return FAIL;
-        qry_str_copy++;
-        
-        
-        
-    }
+    //{   // Get Query name
+    //    if ((answer_name[0] & COMPRESSION_MASK) == COMPRESSION_MASK)
+    //    {
+    //        qry_str_copy = name;
+    //        uint32_t next_offset = (uint16_t)(((uint8_t)answer_name[0] << 10) + answer_name[1]); //answer_name[0] & !COMPRESSION_MASK;
+    //        
+    //        if (get_compressed_field(pInputs, pRecv_buff, next_offset, name) != SUCCESS)
+    //            return FAIL;
+    //    }
+    //    if (query_to_host_string(pInputs, qry_str_copy) != SUCCESS)
+    //        return FAIL;
+    //    qry_str_copy++;
+    //}
     
     //-------------------------------------------------
-    bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s type %u class %u\n", qry_str_copy, dns_query_hdr->qry_type, dns_query_hdr->qry_class);
+    bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s type %u class %u\n", qry_str_copy, ntohs(dns_query_hdr->qry_type), ntohs(dns_query_hdr->qry_class));
     if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
         return FAIL;
     append_to_log(log_msg);
     //-------------------------------------------------
-
+    
     for (int i = 0; i < dns_header->num_questions; i++)
     {
         //parse_ResourceRecord(pInputs, pRecv_buff, )
@@ -615,7 +606,25 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
 
 static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff)
 {
+
     
+}
+
+static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char* output_string, char* temp_buff)
+{
+    if ((start_string[0] & COMPRESSION_MASK) == COMPRESSION_MASK)
+    {
+        uint32_t next_offset = (uint16_t)(((uint8_t)start_string[0] << 10) + start_string[1]); //answer_name[0] & !COMPRESSION_MASK;
+
+        if (get_compressed_field(pInputs, pRecv_buff, next_offset, temp_buff) != SUCCESS)
+            return FAIL;
+
+        output_string = temp_buff;
+    }
+    if (query_to_host_string(pInputs, output_string) != SUCCESS)
+        return FAIL;
+    output_string++;
+
     return SUCCESS;
 }
 
