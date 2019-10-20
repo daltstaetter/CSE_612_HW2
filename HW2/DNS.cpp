@@ -192,6 +192,7 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
     pInputs->dns_pkt_size = 0;
     pInputs->bytes_recv = -1;
     pInputs->query_string = NULL;
+    pInputs->num_questions = 0;
     
     gNum_jumps = 0;
     gMax_num_jumps = 0;
@@ -551,6 +552,9 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
     if (ntohs(dns_header->flags) & RCODE_MASK) // ERROR in DNS Reply
         return FAIL;
 
+    if (err_check(pInputs->num_questions != htons(dns_header->num_questions), "Num questions doesn't match in response", __FILE__, __FUNCTION__, __LINE__))
+        return FAIL;
+
     if (err_check(strcmp(pInputs->query_string, qry_str_response), "00:response qry string does not match\n", __FILE__, __FUNCTION__, __LINE__))
         return FAIL;
 
@@ -558,25 +562,10 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
         return FAIL;
     
     append_to_log("  ------------ [questions] ----------\n");
-    
     gMax_num_jumps = pInputs->bytes_recv; // used to check for if we get into a loop for reading compressed values
     
     if (parse_query_name(pInputs, pRecv_buff, answer_name, qry_str_copy, name) != SUCCESS)
         return FAIL;
-
-    //{   // Get Query name
-    //    if ((answer_name[0] & COMPRESSION_MASK) == COMPRESSION_MASK)
-    //    {
-    //        qry_str_copy = name;
-    //        uint32_t next_offset = (uint16_t)(((uint8_t)answer_name[0] << 10) + answer_name[1]); //answer_name[0] & !COMPRESSION_MASK;
-    //        
-    //        if (get_compressed_field(pInputs, pRecv_buff, next_offset, name) != SUCCESS)
-    //            return FAIL;
-    //    }
-    //    if (query_to_host_string(pInputs, qry_str_copy) != SUCCESS)
-    //        return FAIL;
-    //    qry_str_copy++;
-    //}
     
     //-------------------------------------------------
     bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s type %u class %u\n", qry_str_copy, ntohs(dns_query_hdr->qry_type), ntohs(dns_query_hdr->qry_class));
@@ -612,6 +601,7 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff)
 
 static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char* output_string, char* temp_buff)
 {
+
     if ((start_string[0] & COMPRESSION_MASK) == COMPRESSION_MASK)
     {
         uint32_t next_offset = (uint16_t)(((uint8_t)start_string[0] << 10) + start_string[1]); //answer_name[0] & !COMPRESSION_MASK;
@@ -758,6 +748,7 @@ static char* create_packet(Inputs_t* pInputs)
     pInputs->tx_id = ntohs(dns_fixed_hdr->tx_id);
     pInputs->dns_type = ntohs(dns_query_hdr->qry_type);
     pInputs->dns_pkt_size = pkt_size;
+    pInputs->num_questions = ntohs(dns_fixed_hdr->num_questions);
     
     return pPacket;
 }

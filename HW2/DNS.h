@@ -81,7 +81,9 @@ typedef struct Inputs {
     uint16_t tx_id;
     uint16_t dns_pkt_size;
     int16_t bytes_recv;
+    uint16_t num_questions;
     char* query_string;
+
 } Inputs_t;
 
 #pragma pack(pop)       // restores old packing
