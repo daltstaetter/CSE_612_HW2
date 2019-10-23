@@ -46,30 +46,6 @@ int32_t main(int32_t argc, char* argv[])
     if (status != SUCCESS)
         return FAIL;
     
-   for (int i = 0; i < inputs.bytes_recv; i++)
-    {
-        if (i == 6)
-            printf("\n");
-        else if ((i-6) % (16) == 0 && i)
-            printf("\n");
-        else if ((i-6) % (8) == 0)
-            printf("\t");
-
-        //if((recv_buff[i] < 'z' && recv_buff[i] > 'a') || (recv_buff[i] < 'Z' && recv_buff[i] > 'A') || recv_buff[i] == '.')
-        //    printf(" %c ", recv_buff[i]);
-        //else
-            printf("%02X ", (uint8_t)(recv_buff[i]));
-        
-    }
-
-    //printf("\nnum_bytes = %d\n\n", inputs.bytes_recv);
-    //for (int i = 2; i < inputs.bytes_recv; i++)
-    //{
-    //    //printf("\\x%02X", (uint8_t)(recv_buff[i]));
-    //    if (recv_buff[i] != stack_overflow_auth[i])
-    //        printf("buff cmpr issue\n");
-    //}
-    
     terminate_safely(&inputs);
 
     return status;

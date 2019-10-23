@@ -146,6 +146,7 @@ static int32_t getA_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char*
 static int32_t getNS_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
 static int32_t getCNAME_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
 static int32_t getPTR_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
+static int32_t get_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length, char* pRecord_type);
 static int32_t parse_questions(Inputs_t* pInputs, char* pRecv_buff, unsigned char** ppQuestionRR_name, uint16_t count, const char* pSection);
 static int32_t check_num_records(uint16_t numA_CNAME, uint16_t numNS);
 
