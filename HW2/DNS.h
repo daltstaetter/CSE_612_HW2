@@ -11,6 +11,7 @@
 
 #include "pch.h"
 //#include "globals.h"
+#pragma comment(lib, "ws2_32.lib")
 
 extern char* gLog_buffer;
 extern uint32_t gLog_buffer_size;
@@ -95,6 +96,16 @@ typedef struct Inputs {
 
 } Inputs_t;
 
+typedef enum Return_Code {
+    RC_SUCCESS      = 0,
+    RC_FORMAT_ERROR = 1,
+    RC_SERVER_FAIL  = 2,
+    RC_NO_DNS_NAME  = 3,
+    RC_NOT_IMPLEMENTED = 4,
+    RC_REFUSED = 5,
+    RC_RESERVED = 6
+} Return_Code_t;
+
 #pragma pack(pop)       // restores old packing
 
 // main public functions
@@ -102,11 +113,11 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
 int32_t run_DNS_Lookup(Inputs_t* pInputs, char* pRecv_buff);
 int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff);
 
-static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigned char** ppAnswerRR_name, uint16_t count, const char* pSection);
+static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigned char** ppAnswerRR_name, uint16_t count, const char* pSection, int32_t* pParsed_records);
 
 static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char** output_string, char* temp_buff);
 
-static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField, uint16_t* pData_length);
+static int32_t get_packet_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField, uint16_t* pData_length);
 
 // auxillary functions
 int32_t null_strlen(const char* str);
@@ -135,7 +146,7 @@ static int32_t getA_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char*
 static int32_t getNS_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
 static int32_t getCNAME_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
 static int32_t getPTR_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
-
+static int32_t parse_questions(Inputs_t* pInputs, char* pRecv_buff, unsigned char** ppQuestionRR_name, uint16_t count, const char* pSection);
 static int32_t check_num_records(uint16_t numA_CNAME, uint16_t numNS);
 
 

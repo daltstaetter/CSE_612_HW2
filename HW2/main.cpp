@@ -39,10 +39,14 @@ int32_t main(int32_t argc, char* argv[])
     status = run_DNS_Lookup(&inputs, recv_buff);
 
     if (status == SUCCESS)
-        parse_DNS_response(&inputs, recv_buff);
-    
+        status = parse_DNS_response(&inputs, recv_buff);
+    append_to_log("\n");
     print_log();
-    for (int i = 0; i < inputs.bytes_recv; i++)
+    
+    if (status != SUCCESS)
+        return FAIL;
+    
+   for (int i = 0; i < inputs.bytes_recv; i++)
     {
         if (i == 6)
             printf("\n");
@@ -65,14 +69,11 @@ int32_t main(int32_t argc, char* argv[])
     //    if (recv_buff[i] != stack_overflow_auth[i])
     //        printf("buff cmpr issue\n");
     //}
-        
+    
     terminate_safely(&inputs);
 
     return status;
 }
-
-
-
 
 int32_t terminate_safely(Inputs_t* pInputs)
 {

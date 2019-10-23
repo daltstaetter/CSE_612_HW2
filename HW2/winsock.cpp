@@ -11,17 +11,16 @@
  * CSE 612
  * Fall 2019
  */
-
+ 
 
 #include "pch.h"
 //#include "main.h"
  //#include "globals.h"
 
 //extern _CrtMemState s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
+//#pragma comment(lib, "ws2_32.lib")
 
-
-#pragma comment(lib, "ws2_32.lib")
-
+/*
 #define SEND_TIMEOUT        5000
 #define RECV_TIMEOUT        10000
 #define RECV_BUFF_SIZE      8192
@@ -43,10 +42,10 @@ int32_t sock_check(int32_t aTest, const char* aFile, const char* aFunction, int3
     return SUCCESS;
 }
 
-/*
- * max_recv_len is to determine whether to exit early depending on if robots.txt exists
- * if not max_recv len is larger
-*/
+//
+// max_recv_len is to determine whether to exit early depending on if robots.txt exists
+// if not max_recv len is larger
+//
 char* read_socket(SOCKET* paSocket, uint32_t* paCurr_pos, const uint32_t aMax_recv_len)
 {
     //return NULL;
@@ -286,7 +285,7 @@ const char* send_request(const char* paRequest, const int32_t aRequest_size, int
     return recv_buff;
 }
 
-/*
+
 const char* create_get_request(int32_t* paBytes_written, const char* cmd)
 {
     *paBytes_written = 0;
