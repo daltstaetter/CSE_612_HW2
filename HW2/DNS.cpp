@@ -746,7 +746,7 @@ static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_
 
     for (i = 0, j = 0; ptr[i] != NULL && j < aData_length; i++)
     {
-        if ((ptr[i] & COMPRESSION_MASK) == COMPRESSION_MASK)
+        if (ptr[i] == COMPRESSION_MASK)
         {   // copy from ptr[0] to ptr[i-1] into buff
             //printf("compressed\n");
             //current_spot = answer_name;
@@ -1079,7 +1079,7 @@ static int32_t parse_answer_data(Inputs_t* pInputs, char* pRecv_buff, char* star
     char* ptr = start_string;
     uint32_t next_offset = (ptr - pRecv_buff);
 
-    if ((*ptr & COMPRESSION_MASK) == COMPRESSION_MASK)
+    if (*ptr == COMPRESSION_MASK)
         next_offset = (uint16_t)(((uint8_t)ptr[0] << 10) + ptr[1]); //answer_name[0] & !COMPRESSION_MASK;
 
     gNum_jumps++; // undo what will have happened
