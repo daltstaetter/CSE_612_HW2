@@ -10,10 +10,12 @@
 #include "pch.h"
 //extern _CrtMemState s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
 
-extern char* gLog_buffer;
-extern uint32_t gLog_buffer_size;
-extern int32_t gNum_jumps;
-extern int32_t gMax_num_jumps;
+
+
+//extern char* gLog_buffer;
+//extern uint32_t gLog_buffer_size;
+//extern int32_t gNum_jumps;
+//extern int32_t gMax_num_jumps;
 
 void exit_process()
 {
@@ -550,15 +552,18 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
 
     if (ntohs(dns_header->tx_id) != pInputs->tx_id)
     {
-        append_to_log("  ++ invalid reply: TXID mismatch, sent 0x0871, received 0x0872");
+        bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "  ++ invalid reply: TXID mismatch, sent 0x%.4X received 0x%.4X\n", pInputs->tx_id, ntohs(dns_header->tx_id));
+        if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
+            return FAIL;
+        append_to_log(log_msg);
+
+        return FAIL;
     }
     if (pInputs->bytes_recv < sizeof(Fixed_DNS_Header_t))
     {
         append_to_log("  ++ invalid reply: smaller than fixed header");
+        return FAIL;
     }
-
-    // (ntohs(dns_header->flags) & RCODE_MASK) ? "failed" : "succeeded",
-        //ntohs(dns_header->flags)& RCODE_MASK);
 
     //-------------------------------------------------
 
@@ -604,25 +609,132 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
     append_to_log(log_msg);
     //-------------------------------------------------
     
-    append_to_log("  ------------ [answers] ------------\n");
-    for (uint16_t i = 0; i < ntohs(dns_header->num_answers); i++)
+    //append_to_log("  ------------ [answers] ------------\n");
+//
+    parse_ResourceRecord(pInputs, pRecv_buff, answerRR_name, ntohs(dns_header->num_answers), "  ------------ [answers] ------------\n");
+//----------------------------------
+//    for (uint16_t i = 0; i < ntohs(dns_header->num_answers); i++)
+//    {
+//        memset((char*)name, 0, sizeof(char) * MAX_HOST_LEN);
+//        qry_str_copy = name;
+//        if (parse_query_name(pInputs, pRecv_buff, (char*)answerRR_name, &qry_str_copy, name) != SUCCESS)
+//            return FAIL;
+//        
+//        if (*answerRR_name == COMPRESSION_MASK)
+//        {
+//            answerRR_hdr = (DNS_AnswerRR_Header_t*)(answerRR_name + sizeof(int16_t));
+//        }
+//        else
+//        {
+//            for (ptr = answerRR_name; *ptr != NULL; ptr++)
+//                answerRR_hdr = (DNS_AnswerRR_Header_t*)(ptr + 1);
+//            
+//            // it stops at the null char (one byte short of header)
+//            answerRR_hdr = (DNS_AnswerRR_Header_t*)((char*) (answerRR_hdr) + 1);
+//        }
+//
+//        if (ntohs(answerRR_hdr->dns_type) != DNS_A && ntohs(answerRR_hdr->dns_type) != DNS_PTR)
+//        {
+//            append_to_log("  ++ invalid reply: dns type is not A/NS/PTR/CNAME\n");
+//            return FAIL;
+//        }
+//        
+//
+//
+//
+////      Logging
+//        char record_string[TYPE_LEN] = { 0 };
+//        if (get_record_type(ntohs(answerRR_hdr->dns_class), record_string, TYPE_LEN) != SUCCESS)
+//            return FAIL;
+//
+//        char record_data[MAX_DNS_A_LEN] = { 0 };
+//        char* data_ptr = (char*) (&answerRR_hdr->rd_length + 1); // pts to data string field
+//
+//        if (strcmp(record_string, "A") == SUCCESS)          // get from data len and add '.'
+//        {
+//            if (getA_data(pInputs, pRecv_buff, data_ptr, record_data, ntohs(answerRR_hdr->rd_length)) != SUCCESS)
+//                return FAIL;
+//        }
+//        else
+//        {
+//            append_to_log("  ++ invalid section: not enough records");
+//            // TODO: reset header field and move on to next record type
+//        }
+//        //else if (strcmp(record_string, "NS") == SUCCESS)    // get name
+//        //{
+//        //    if (getNS_data(pInputs, pRecv_buff, data_ptr, record_data) != SUCCESS)
+//        //        return FAIL;
+//        //}
+//        //else if (strcmp(record_string, "CNAME") == SUCCESS) // get name
+//        //{
+//        //    if (getCNAME_data(pInputs, pRecv_buff, data_ptr, record_data) != SUCCESS)
+//        //        return FAIL;
+//        //}
+//        //else if (strcmp(record_string, "PTR") == SUCCESS)   // get name (usually inline)
+//        //{
+//        //    if (getPTR_data(pInputs, pRecv_buff, data_ptr, record_data) != SUCCESS)
+//        //    return FAIL;
+//        //}
+//
+//        bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s %s %s TTL = %u\n", qry_str_copy, record_string, record_data, ntohl (answerRR_hdr->dns_ttl));
+//        if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
+//            return FAIL;
+//        
+//        append_to_log(log_msg);
+//        answerRR_name = (unsigned char*)(answerRR_hdr + 1) + ntohs(answerRR_hdr->rd_length);
+//
+//        if ((char*)answerRR_name > &pRecv_buff[pInputs->bytes_recv])
+//        {
+//            append_to_log("  ++ invalid record: RR value length beyond packet\n");
+//            return FAIL;
+//        }
+////----------------------------------
+//    }
+    print_log();
+
+    for (uint16_t i = 0; i < ntohs(dns_header->num_authority); i++)
+    {
+
+    }
+    for (uint16_t i = 0; i < ntohs(dns_header->num_additional); i++)
+    {
+
+    }
+    return SUCCESS;
+}
+
+// "  ------------ [answers] ------------\n");
+// parse_ResourceRecord(pInputs, pRecv_buff, "  ------------ [answers] ------------\n", )
+static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigned char* pAnswerRR_name, uint16_t count, const char* pSection)
+{
+    //if (parse_query_name(pInputs, pRecv_buff, answerRR_name, &qry_str_copy, name) != SUCCESS)
+    //    return FAIL;
+    char log_msg[LOG_LINE_SIZE];
+    char name[MAX_HOST_LEN];
+    unsigned char* ptr = NULL;
+    char* qry_str_copy = NULL;
+    DNS_AnswerRR_Header_t* answerRR_hdr = NULL;
+    int32_t bytes_written = NULL;
+
+    append_to_log(pSection);
+    for (uint16_t i = 0; i < count; i++)
     {
         memset((char*)name, 0, sizeof(char) * MAX_HOST_LEN);
         qry_str_copy = name;
-        if (parse_query_name(pInputs, pRecv_buff, (char*)answerRR_name, &qry_str_copy, name) != SUCCESS)
+        if (parse_query_name(pInputs, pRecv_buff, (char*)pAnswerRR_name, &qry_str_copy, name) != SUCCESS)
             return FAIL;
-        
-        if (*answerRR_name == COMPRESSION_MASK)
+
+        if (*pAnswerRR_name == COMPRESSION_MASK)
         {
-            answerRR_hdr = (DNS_AnswerRR_Header_t*)(answerRR_name + sizeof(int16_t));
+            answerRR_hdr = (DNS_AnswerRR_Header_t*)(pAnswerRR_name + sizeof(int16_t));
         }
         else
         {
-            for (ptr = answerRR_name; *ptr != NULL; ptr++)
+            for (ptr = pAnswerRR_name; *ptr != NULL; ptr++)
                 answerRR_hdr = (DNS_AnswerRR_Header_t*)(ptr + 1);
-            
+
             // it stops at the null char (one byte short of header)
-            answerRR_hdr = (DNS_AnswerRR_Header_t*)((char*) (answerRR_hdr) + 1);
+            answerRR_hdr = (DNS_AnswerRR_Header_t*)((char*)(answerRR_hdr)+1);
         }
 
         if (ntohs(answerRR_hdr->dns_type) != DNS_A && ntohs(answerRR_hdr->dns_type) != DNS_PTR)
@@ -630,22 +742,24 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
             append_to_log("  ++ invalid reply: dns type is not A/NS/PTR/CNAME\n");
             return FAIL;
         }
-        
 
-
-
-//      Logging
+        //      Logging
         char record_string[TYPE_LEN] = { 0 };
         if (get_record_type(ntohs(answerRR_hdr->dns_class), record_string, TYPE_LEN) != SUCCESS)
             return FAIL;
 
         char record_data[MAX_DNS_A_LEN] = { 0 };
-        char* data_ptr = (char*) (&answerRR_hdr->rd_length + 1); // pts to data string field
+        char* data_ptr = (char*)(&answerRR_hdr->rd_length + 1); // pts to data string field
 
         if (strcmp(record_string, "A") == SUCCESS)          // get from data len and add '.'
         {
             if (getA_data(pInputs, pRecv_buff, data_ptr, record_data, ntohs(answerRR_hdr->rd_length)) != SUCCESS)
                 return FAIL;
+        }
+        else
+        {
+            append_to_log("  ++ invalid section: not enough records");
+            // TODO: reset header field and move on to next record type
         }
         //else if (strcmp(record_string, "NS") == SUCCESS)    // get name
         //{
@@ -663,28 +777,19 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
         //    return FAIL;
         //}
 
-        bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s %s %s TTL = %u\n", qry_str_copy, record_string, record_data, ntohl (answerRR_hdr->dns_ttl));
+        bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s %s %s TTL = %u\n", qry_str_copy, record_string, record_data, ntohl(answerRR_hdr->dns_ttl));
         if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
             return FAIL;
-        
+
         append_to_log(log_msg);
-        answerRR_name = (unsigned char*)(answerRR_hdr + 1) + ntohs(answerRR_hdr->rd_length);
-    }
-    for (uint16_t i = 0; i < ntohs(dns_header->num_authority); i++)
-    {
+        pAnswerRR_name = (unsigned char*)(answerRR_hdr + 1) + ntohs(answerRR_hdr->rd_length);
 
+        if ((char*)pAnswerRR_name > & pRecv_buff[pInputs->bytes_recv])
+        {
+            append_to_log("  ++ invalid record: RR value length beyond packet\n");
+            return FAIL;
+        }
     }
-    for (uint16_t i = 0; i < ntohs(dns_header->num_additional); i++)
-    {
-
-    }
-    return SUCCESS;
-}
-
-static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff)
-{
-    //if (parse_query_name(pInputs, pRecv_buff, answerRR_name, &qry_str_copy, name) != SUCCESS)
-    //    return FAIL;
 
     return SUCCESS;
     

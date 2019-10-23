@@ -12,6 +12,11 @@
 #include "pch.h"
 //#include "globals.h"
 
+extern char* gLog_buffer;
+extern uint32_t gLog_buffer_size;
+extern int32_t gNum_jumps;
+extern int32_t gMax_num_jumps;
+
 #define SUCCESS         0
 #define FAIL            1
 #define MAX_DNS_LEN     512
@@ -97,7 +102,7 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
 int32_t run_DNS_Lookup(Inputs_t* pInputs, char* pRecv_buff);
 int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff);
 
-static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pQuery_string_response);
+static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigned char* pAnswerRR_name, uint16_t count, const char* pSection);
 
 static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char** output_string, char* temp_buff);
 
