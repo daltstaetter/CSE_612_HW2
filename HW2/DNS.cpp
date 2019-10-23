@@ -1082,7 +1082,7 @@ static int32_t parse_answer_data(Inputs_t* pInputs, char* pRecv_buff, char* star
     if (*ptr == COMPRESSION_MASK)
         next_offset = (uint16_t)(((uint8_t)ptr[0] << 10) + ptr[1]); //answer_name[0] & !COMPRESSION_MASK;
 
-    gNum_jumps++; // undo what will have happened
+    gNum_jumps--; // undo what will have happened
     if (get_compressed_field(pInputs, pRecv_buff, next_offset, temp_buff, aData_length) != SUCCESS)
         return FAIL;
 
