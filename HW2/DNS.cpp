@@ -120,7 +120,6 @@ int32_t print_usage(void)
 }
 
 /*
-*
 *   Goal: Find substring index in null-terminated string paSub_url
 *         -if no match (search returns NULL), return location of null char
 */
@@ -135,30 +134,6 @@ static char* get_char(char paSub_url[MAX_DNS_LEN], const int8_t delimiter)
         return char_index;
 }
 
-int32_t set_port(char paSub_url[MAX_DNS_LEN], uint16_t* pPort)
-{
-    uint32_t port; // used to check if port w/in range 1-65535
-    if (isdigit(paSub_url[1]))
-    {
-        // keep in host byte order
-        port = (uint32_t)atoi(&paSub_url[1]); // start
-                
-        *pPort = (uint16_t)port;
-                
-        // move along the string & find first non-numeric index
-        uint32_t i = 1;
-        while (isdigit(paSub_url[i]))
-            i++;
-                
-        if (err_check((strcpy_s(paSub_url, MAX_DNS_LEN * sizeof(char), paSub_url + sizeof(char) * i)) != SUCCESS,
-            "strcpy()", __FILE__, __FUNCTION__, __LINE__) != SUCCESS)
-        {
-            return FAIL;
-        }
-    }
-    
-    return SUCCESS;
-}
 
 int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_server)
 {
@@ -635,20 +610,10 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
     if (err_check(strcpy_s(qry_str_copy, MAX_HOST_LEN, qry_str_response), "strcpy_s() fail\n", __FILE__, __FUNCTION__, __LINE__))
         return FAIL;
     
-    //append_to_log("  ------------ [questions] ----------\n");
     gMax_num_jumps = pInputs->bytes_recv; // used to check for if we get into a loop for reading compressed values
     if (parse_questions(pInputs, pRecv_buff, (unsigned char**)&qry_str_response, ntohs(dns_header->num_questions), "  ------------ [questions] ----------\n"))
         return FAIL;
     
-    //if (parse_query_name(pInputs, pRecv_buff, qry_str_response, &qry_str_copy, name) != SUCCESS)
-    //    return FAIL;
-
-    
-    //-------------------------------------------------
-    /*bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s type %u class %u\n", qry_str_copy, ntohs(dns_query_hdr->qry_type), ntohs(dns_query_hdr->qry_class));
-    if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
-        return FAIL;
-    append_to_log(log_msg);*/
     //-------------------------------------------------
     uint16_t a = ntohs(dns_header->num_additional);
 
@@ -671,12 +636,8 @@ int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff)
     return SUCCESS;
 }
 
-// "  ------------ [answers] ------------\n");
-// parse_ResourceRecord(pInputs, pRecv_buff, "  ------------ [answers] ------------\n", )
 static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigned char** ppAnswerRR_name, uint16_t count, const char* pSection, int32_t* pParsed_records)
 {
-    //if (parse_query_name(pInputs, pRecv_buff, answerRR_name, &qry_str_copy, name) != SUCCESS)
-    //    return FAIL;
     char log_msg[LOG_LINE_SIZE] = { 0 };
     char name[MAX_HOST_LEN] = { 0 };
     unsigned char* ptr = NULL;
@@ -684,8 +645,6 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigne
     DNS_AnswerRR_Header_t* answerRR_hdr = NULL;
     int32_t bytes_written = NULL;
     unsigned char* answerRR_name = *ppAnswerRR_name;
-    //uint16_t numA_CNAME_records = 0;
-    //uint16_t numNS_records = 0;
     int32_t isNS_record = -1;
 
     if (count == 0 || htons(count) == 0)
@@ -760,38 +719,6 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigne
 
         if (get_data(pInputs, pRecv_buff, data_ptr, record_data, ntohs(answerRR_hdr->rd_length), record_string) != SUCCESS)
             return FAIL;
-        //if (strncmp(record_string, "A", strlen("A")) == SUCCESS)          // get from data len and add '.'
-        //{
-        //    if (getA_data(pInputs, pRecv_buff, data_ptr, record_data, ntohs(answerRR_hdr->rd_length)) != SUCCESS)
-        //        return FAIL;
-        //    
-        //    if (check_num_records(++numA_CNAME_records, numNS_records) != SUCCESS)
-        //        return FAIL;
-        //}
-        //else if (strcmp(record_string, "NS") == SUCCESS)    // get name
-        //{
-        //    if (getNS_data(pInputs, pRecv_buff, data_ptr, record_data, ntohs(answerRR_hdr->rd_length)) != SUCCESS)
-        //        return FAIL;
-
-        //    if (check_num_records(numA_CNAME_records, ++numNS_records) != SUCCESS)
-        //        return FAIL;
-        //}
-        //else if (strcmp(record_string, "CNAME") == SUCCESS) // get name
-        //{
-        //    if (getCNAME_data(pInputs, pRecv_buff, data_ptr, record_data, ntohs(answerRR_hdr->rd_length)) != SUCCESS)
-        //        return FAIL;
-        //    
-        //    if (check_num_records(++numA_CNAME_records, numNS_records) != SUCCESS)
-        //        return FAIL;
-        //}
-        //else if (strcmp(record_string, "PTR") == SUCCESS)   // get name (usually inline)
-        //{
-        //    if (getPTR_data(pInputs, pRecv_buff, data_ptr, record_data, ntohs(answerRR_hdr->rd_length)) != SUCCESS)
-        //        return FAIL;
-
-        //    if (check_num_records(++numA_CNAME_records, numNS_records) != SUCCESS)
-        //        return FAIL;
-        //}
 
         bytes_written = _snprintf_s(log_msg, LOG_LINE_SIZE * sizeof(char), "        %s %s %s TTL = %u\n", qry_str_copy, record_string, record_data, ntohl(answerRR_hdr->dns_ttl));
         if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "_snprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
@@ -882,14 +809,7 @@ static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start
         return FAIL;
 
     if ((unsigned char)start_string[0] == COMPRESSION_MASK)
-    {
         next_offset = (uint16_t)(((uint8_t)start_string[0] << 10) + start_string[1]); //answer_name[0] & !COMPRESSION_MASK;
-
-        /*if (get_compressed_field(pInputs, pRecv_buff, next_offset, temp_buff, &max_host_length) != SUCCESS)
-            return FAIL;
-
-        *output_string = temp_buff;*/
-    }
 
     if (get_packet_field(pInputs, pRecv_buff, next_offset, temp_buff, &max_host_length) != SUCCESS)
         return FAIL;
@@ -914,7 +834,7 @@ static int32_t get_packet_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t by
 
     if (dyn_length == 1)
     {
-        jumped = TRUE; // corner case where the only data it points to is located somewhere else
+        jumped = TRUE; // corner case where the only data it points to is compressed data at the specified offset
         dyn_length++;
     }
     if (byte_offset > pInputs->bytes_recv - 1)
@@ -935,9 +855,7 @@ static int32_t get_packet_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t by
     for (i = 0, j = 0; ptr[i] != NULL && j < dyn_length; i++)
     {
         if ((unsigned char)ptr[i] == COMPRESSION_MASK)
-        {   // copy from ptr[0] to ptr[i-1] into buff
-            //printf("compressed\n");
-            //current_spot = answer_name;
+        {   
             uint16_t new_offset = ((uint16_t)((uint8_t)ptr[i] << 10) + (uint8_t)ptr[i+1]);
 
             if (new_offset > pInputs->bytes_recv - 1)
@@ -1057,7 +975,6 @@ static char* create_packet(Inputs_t* pInputs)
     dns_query_hdr->qry_class = htons(DNS_INET);
 
     // Update status
-    //pInputs->dns_type = // ntohs(dns_query_hdr->qry_type);
     pInputs->dns_pkt_size = pkt_size;
     pInputs->num_questions = ntohs(dns_fixed_hdr->num_questions);
     
@@ -1338,94 +1255,6 @@ static int32_t get_record_type(DNS_AnswerRR_Header_t* pAnswerRR, char* val, uint
     return status;
 }
 
-static int32_t getA_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length)
-{
-    unsigned char byte_IP[MAX_HOST_LEN] = { 0 };
-
-    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)byte_IP, &aData_length) != SUCCESS)
-        return FAIL;
-// ---------- TYPE A Only --------------
-    if (strlen((char*)byte_IP) != aData_length)
-        return FAIL;
-
-    int32_t bytes_written = sprintf_s(pRecord_data, MAX_DNS_A_LEN * sizeof(char), "%u.%u.%u.%u", byte_IP[0], byte_IP[1], byte_IP[2], byte_IP[3]);
-    if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "sprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
-        return FAIL;
-
-// ---------- TYPE A Only --------------
-
-    return SUCCESS;
-}
-
-static int32_t getNS_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length)
-{
-    unsigned char ns_name[MAX_HOST_LEN] = { 0 };
-    char* ptr = (char*) ns_name;
-
-    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)ns_name, &aData_length) != SUCCESS)
-        return FAIL;
-
-// ---------- TYPE String Only -------------
-    if (null_strlen((char*)ns_name) > aData_length)
-        return FAIL;
-
-    if (recurse_string_for_commas(ptr, null_strlen(ptr)) != SUCCESS)
-        return FAIL;
-
-    int32_t bytes_written = sprintf_s(pRecord_data, MAX_HOST_LEN * sizeof(char), "%s", ns_name + 1);
-    if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "sprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
-        return FAIL;
-
-// ---------- TYPE String Only -------------
-
-
-
-    return SUCCESS;
-}
-
-static int32_t getCNAME_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length)
-{
-    unsigned char cname[MAX_HOST_LEN] = { 0 };
-
-    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)cname, &aData_length) != SUCCESS)
-        return FAIL;
-
-    if (strlen((char*)cname) != aData_length)
-        return FAIL;
-
-    //int32_t bytes_written = sprintf_s(pRecord_data, MAX_DNS_A_LEN * sizeof(char), "%u.%u.%u.%u", byte_IP[0], byte_IP[1], byte_IP[2], byte_IP[3]);
-    //if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "sprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
-    //    return FAIL;
-
-    return SUCCESS;
-}
-
-static int32_t getPTR_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length)
-{
-    unsigned char ptr_name[MAX_HOST_LEN] = { 0 };
-    char* ptr = (char*)ptr_name;
-
-    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)ptr_name, &aData_length) != SUCCESS)
-        return FAIL;
-
-    // ---------- TYPE String Only -------------
-    if (null_strlen((char*)ptr_name) > aData_length)
-        return FAIL;
-
-    if (recurse_string_for_commas(ptr, null_strlen(ptr)) != SUCCESS)
-        return FAIL;
-
-    int32_t bytes_written = sprintf_s(pRecord_data, MAX_HOST_LEN * sizeof(char), "%s", ptr_name + 1);
-    if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "sprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
-        return FAIL;
-
-    // ---------- TYPE String Only -------------
-
-
-
-    return SUCCESS;
-}
-
 static int32_t get_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length, char* pRecord_type)
 {
     unsigned char name_IP[MAX_HOST_LEN] = { 0 };
@@ -1462,7 +1291,6 @@ static int32_t get_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* 
     }
     return SUCCESS;
 }
-
 
 static int32_t check_num_records(uint16_t numA_CNAME, uint16_t numNS)
 {
