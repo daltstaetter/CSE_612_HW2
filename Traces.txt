@@ -1,0 +1,276 @@
+
+
+Index
+Random0.irl:			++ invalid record: jump into fixed header
+Random1.irl:			++ invalid record: jump beyond packet boundary
+Random3.irl:			++ invalid reply: smaller than fixed header
+
+Random4.irl:			++ invalid record: jump beyond packet boundary
+						++ invalid record: receive data length is zero
+						++ invalid reply: dns type is not A/NS/PTR/CNAME
+						++ invalid reply: smaller than fixed header
+						++ invalid reply: query class does not match
+						++ invalid reply: TXID mismatch, sent 0x8353 received 0x8300
+
+Random5.irl:			++ invalid DNS string: label size is exceeds buffer length
+						++ invalid record: jump beyond packet boundary
+						
+Random6.irl:			++ invalid record: jump loop
+Random7.irl:			++ invalid record: jump into fixed header
+
+Random9.irl:			++ invalid reply: TXID mismatch, sent 0x4F07 received 0x4F08
+  
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random0.irl 127.0.0.1
+Lookup   : random0.irl
+Query    : random0.irl, type 1, TXID 0x0000
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 82 bytes
+  TXID 0x0000 flags 0x8400 questions 1 answers 2 authority 0 additional 0
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random0.irl type 1 class 1
+  ------------ [answers] ------------
+  ++ invalid record: jump into fixed header
+
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random1.irl 127.0.0.1
+Lookup   : random1.irl
+Query    : random1.irl, type 1, TXID 0x0000
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 468 bytes
+  TXID 0x0000 flags 0x8600 questions 1 answers 1 authority 0 additional 65535
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random1.irl type 1 class 1
+  ------------ [answers] ------------
+        random.irl A 1.1.1.1 TTL = 30
+  ------------ [additional] ---------
+        Episode.IV A 2.2.2.2 TTL = 30
+        A.NEW.HOPE A 2.2.2.2 TTL = 30
+        It.is.a.period.of.civil.war A 2.2.2.2 TTL = 30
+        Rebel.spaceships A 2.2.2.2 TTL = 30
+        striking.from.a.hidden.base A 2.2.2.2 TTL = 30
+        have.won.their.first.victory A 2.2.2.2 TTL = 30
+        against.the.evil.Galactic.Empire A 2.2.2.2 TTL = 30
+        During.the.battle A 2.2.2.2 TTL = 30
+        Rebel.spies.managed A 2.2.2.2 TTL = 30
+        to.steal.secret.plans A 2.2.2.2 TTL = 30
+        to.the.Empires.ultimate.weapon A 2.2.2.2 TTL = 30
+  ++ invalid record: jump beyond packet boundary
+  
+  
+  C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random3.irl 127.0.0.1
+Lookup   : random3.irl
+Query    : random3.irl, type 1, TXID 0x0000
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 9 bytes
+  TXID 0x0000 flags 0x8400 questions 1 answers 0 authority 0 additional 0
+  succeeded with Rcode = 0
+  ++ invalid reply: smaller than fixed header
+
+
+
+
+--------------------------------------------------------------------------------
+
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random4.irl 127.0.0.1
+Lookup   : random4.irl
+Query    : random4.irl, type 1, TXID 0x0129
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 214 bytes
+  TXID 0x0129 flags 0x8400 questions 1 answers 1 authority 0 additional 11
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random4.irl type 1 class 1
+  ------------ [answers] ------------
+        random.irl A 1.1.1.1 TTL = 30
+  ------------ [additional] ---------
+        Episode.IV A 2.2.2.2 TTL = 30
+        A.NEW.HOPE A 2.2.2.2 TTL = 30
+        It.is.a.period.of.civil.war A 2.2.2.2 TTL = 30
+        Rebel.spaceships A 2.2.2.2 TTL = 30
+  ++ invalid record: jump beyond packet boundary
+
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random4.irl 127.0.0.1
+Lookup   : random4.irl
+Query    : random4.irl, type 1, TXID 0x5397
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 10 bytes
+  TXID 0x5397 flags 0x8400 questions 1 answers 1 authority 0 additional 0
+  succeeded with Rcode = 0
+  ++ invalid reply: smaller than fixed header
+
+
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random4.irl 127.0.0.1
+Lookup   : random4.irl
+Query    : random4.irl, type 1, TXID 0x0129
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 464 bytes
+  TXID 0x0129 flags 0x8400 questions 1 answers 1 authority 0 additional 11
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random4.irl type 1 class 1
+  ------------ [answers] ------------
+        random.irl A 1.1.1.1 TTL = 30
+  ------------ [additional] ---------
+        Episode.IV A 2.2.2.2 TTL = 30
+        A.NEW.HOPE A 2.2.2.2 TTL = 30
+        It.is.a.period.of.civil.war A 2.2.2.2 TTL = 30
+        Rebel.spaceships A 2.2.2.2 TTL = 30
+        striking.from.a.hidden.base A 2.2.2.2 TTL = 30
+        have.won.their.first.victory A 2.2.2.2 TTL = 30
+        against.the.evil.Galactic.Empire A 2.2.2.2 TTL = 30
+        During.the.battle A 2.2.2.2 TTL = 30
+        Rebel.spies.managed A 2.2.2.2 TTL = 30
+        to.steal.secret.plans A 2.2.2.2 TTL = 30
+  ++ invalid record: jump beyond packet boundary
+
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random4.irl 127.0.0.1
+0       69
+Lookup   : random4.irl
+Query    : random4.irl, type 1, TXID 0x5533
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 1 ms with 286 bytes
+  TXID 0x5533 flags 0x8400 questions 1 answers 1 authority 0 additional 11
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random4.irl type 1 class 1
+  ------------ [answers] ------------
+        random.irl A 1.1.1.1 TTL = 30
+  ------------ [additional] ---------
+        Episode.IV A 2.2.2.2 TTL = 30
+        A.NEW.HOPE A 2.2.2.2 TTL = 30
+        It.is.a.period.of.civil.war A 2.2.2.2 TTL = 30
+        Rebel.spaceships A 2.2.2.2 TTL = 30
+        striking.from.a.hidden.base A 2.2.2.2 TTL = 30
+        have.won.their.first.victory A 2.2.2.2 TTL = 30
+  ++ invalid reply: dns type is not A/NS/PTR/CNAME
+
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random4.irl 127.0.0.1
+Lookup   : random4.irl
+Query    : random4.irl, type 1, TXID 0x61B5
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 213 bytes
+  TXID 0x61B5 flags 0x8400 questions 1 answers 1 authority 0 additional 11
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random4.irl type 1 class 1
+  ------------ [answers] ------------
+        random.irl A 1.1.1.1 TTL = 30
+  ------------ [additional] ---------
+        Episode.IV A 2.2.2.2 TTL = 30
+        A.NEW.HOPE A 2.2.2.2 TTL = 30
+        It.is.a.period.of.civil.war A 2.2.2.2 TTL = 30
+        Rebel.spaceships A 2.2.2.2 TTL = 30
+  ++ invalid record: receive data length is zero
+  
+  
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random4.irl 127.0.0.1
+Lookup   : random4.irl
+Query    : random4.irl, type 1, TXID 0xAD11
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 28 bytes
+  TXID 0xAD11 flags 0x8400 questions 1 answers 1 authority 0 additional 11
+  succeeded with Rcode = 0
+  ++ invalid reply: query class does not match
+  
+  
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random4.irl 127.0.0.1
+Lookup   : random4.irl
+Query    : random4.irl, type 1, TXID 0x8353
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 1 bytes
+  TXID 0x8300 flags 0x0000 questions 0 answers 0 authority 0 additional 0
+  succeeded with Rcode = 0
+  ++ invalid reply: TXID mismatch, sent 0x8353 received 0x8300
+  
+  
+  
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random5.irl 127.0.0.1
+Lookup   : random5.irl
+Query    : random5.irl, type 1, TXID 0x6591
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 71 bytes
+  TXID 0x6591 flags 0x8400 questions 1 answers 2 authority 0 additional 0
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random5.irl type 1 class 1
+  ------------ [answers] ------------
+        random.irl A 1.1.1.1 TTL = 30
+  ++ invalid DNS string: label size is exceeds buffer length
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random5.irl 127.0.0.1
+Lookup   : random5.irl
+Query    : random5.irl, type 1, TXID 0x251F
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 71 bytes
+  TXID 0x251F flags 0x8400 questions 1 answers 2 authority 0 additional 0
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random5.irl type 1 class 1
+  ------------ [answers] ------------
+        random.irl A 1.1.1.1 TTL = 30
+  ++ invalid record: jump beyond packet boundary
+  
+  
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random6.irl 127.0.0.1
+Lookup   : random6.irl
+Query    : random6.irl, type 1, TXID 0x3365
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 59 bytes
+  TXID 0x3365 flags 0x8400 questions 1 answers 2 authority 0 additional 0
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random6.irl type 1 class 1
+  ------------ [answers] ------------
+  ++  invalid record: jump loop
+  
+  
+  
+
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random7.irl 127.0.0.1
+Lookup   : random7.irl
+Query    : random7.irl, type 1, TXID 0x6FDD
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 42 bytes
+  TXID 0x6FDD flags 0x8400 questions 1 answers 2 authority 0 additional 0
+  succeeded with Rcode = 0
+  ------------ [questions] ----------
+        random7.irl type 1 class 1
+  ------------ [answers] ------------
+        random7.irl CNAME  TTL = 30
+  ++ invalid record: jump beyond packet boundary
+  
+  
+  
+C:\Users\daltstaetter\git_repos\CSE_612_HW2\Debug>hw2.exe random9.irl 127.0.0.1
+Lookup   : random9.irl
+Query    : random9.irl, type 1, TXID 0x4F07
+Server   : 127.0.0.1
+********************************
+Attempt 0 with 29 bytes... response in 0 ms with 55 bytes
+  TXID 0x4F08 flags 0x8400 questions 1 answers 1 authority 0 additional 0
+  succeeded with Rcode = 0
+  ++ invalid reply: TXID mismatch, sent 0x4F07 received 0x4F08
