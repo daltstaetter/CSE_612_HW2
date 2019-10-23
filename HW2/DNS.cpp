@@ -622,8 +622,8 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigne
 {
     //if (parse_query_name(pInputs, pRecv_buff, answerRR_name, &qry_str_copy, name) != SUCCESS)
     //    return FAIL;
-    char log_msg[LOG_LINE_SIZE];
-    char name[MAX_HOST_LEN];
+    char log_msg[LOG_LINE_SIZE] = { 0 };
+    char name[MAX_HOST_LEN] = { 0 };
     unsigned char* ptr = NULL;
     char* qry_str_copy = NULL;
     DNS_AnswerRR_Header_t* answerRR_hdr = NULL;
@@ -1091,35 +1091,30 @@ static int32_t parse_answer_data(Inputs_t* pInputs, char* pRecv_buff, char* star
 
 static int32_t get_record_type(DNS_AnswerRR_Header_t* pAnswerRR, char* val, uint32_t length)
 {
-    uint16_t record = ntohs(pAnswerRR->dns_class);
-    uint16_t type = ntohs(pAnswerRR->dns_type);
+    uint16_t record_type = ntohs(pAnswerRR->dns_type);
     int32_t status = SUCCESS;
 
-    if (record == DNS_A)
+    if (record_type == DNS_A)
         status = strcpy_s(val, length, "A");
-    else if (record == DNS_NS)
+    else if (record_type == DNS_NS)
         status = strcpy_s(val, length, "NS");
-    else if (record == DNS_CNAME)
+    else if (record_type == DNS_CNAME)
         status = strcpy_s(val, length, "CNAME");
-    else if (record == DNS_PTR)
+    else if (record_type == DNS_PTR)
         status = strcpy_s(val, length, "PTR");
-    else if (record == DNS_HINFO)
-        status = strcpy_s(val, length, "HINFO");
-    else if (record == DNS_MX)
-        status = strcpy_s(val, length, "MX");
-    else if (record == DNS_AXFR)
-        status = strcpy_s(val, length, "AXFR");
+    //else if (record_type == DNS_HINFO)
+    //    status = strcpy_s(val, length, "HINFO");
+    //else if (record_type == DNS_MX)
+    //    status = strcpy_s(val, length, "MX");
+    //else if (record_type == DNS_AXFR)
+    //    status = strcpy_s(val, length, "AXFR");
     else
         status = FAIL;
 
-    if (type != DNS_A && type != DNS_PTR)
-    {
+    if (status == FAIL) //record_type != DNS_A && record_type != DNS_PTR)
         append_to_log("  ++ invalid reply: dns type is not A/NS/PTR/CNAME\n");
-        status = FAIL;
-    }
     
     return status;
-
 }
 
 static int32_t getA_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length)
