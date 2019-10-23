@@ -102,7 +102,7 @@ int32_t set_inputs(Inputs_t* pInputs, const char* pHost_IP, const char* pDNS_ser
 int32_t run_DNS_Lookup(Inputs_t* pInputs, char* pRecv_buff);
 int32_t parse_DNS_response(Inputs_t* pInputs, char* pRecv_buff);
 
-static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigned char* pAnswerRR_name, uint16_t count, const char* pSection);
+static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigned char** ppAnswerRR_name, uint16_t count, const char* pSection);
 
 static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char** output_string, char* temp_buff);
 
@@ -127,13 +127,16 @@ static int32_t set_query_string(Inputs_t* pInputs, char* pQuery_str, uint32_t aH
 static int32_t send_query_and_get_response(Inputs_t* pInput, char* pPacket, char* pRecv_buff);
 static int32_t recurse_string_for_commas(char* pIn_string, int32_t strlen);
 static int32_t query_to_host_string(Inputs_t* pInputs, char* pQuery_str);
-static int32_t get_record_type(uint16_t record, char* val, uint32_t length);
+static int32_t get_record_type(DNS_AnswerRR_Header_t* pAnswerRR, char* val, uint32_t length);
 static uint16_t set_query_type(Inputs_t* pInputs);
 static int32_t update_jumps();
 static int32_t check_response_string(Inputs_t* pInputs, char* pRecv_buff);
 static int32_t getA_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
-static int32_t getNS_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data);
-static int32_t getCNAME_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data);
-static int32_t getPTR_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data);
+static int32_t getNS_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
+static int32_t getCNAME_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
+static int32_t getPTR_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char* pRecord_data, uint16_t aData_length);
+
+static int32_t check_num_records(uint16_t numA_CNAME, uint16_t numNS);
+
 
 
