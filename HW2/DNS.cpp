@@ -643,7 +643,7 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigne
         if (parse_query_name(pInputs, pRecv_buff, (char*)answerRR_name, &qry_str_copy, name) != SUCCESS)
             return FAIL;
 
-        if (*answerRR_name == COMPRESSION_MASK)
+        if ((unsigned char)*answerRR_name == COMPRESSION_MASK)
         {
             answerRR_hdr = (DNS_AnswerRR_Header_t*)(answerRR_name + sizeof(int16_t));
         }
@@ -661,7 +661,7 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigne
         if (get_record_type(answerRR_hdr, record_string, TYPE_LEN) != SUCCESS)
             return FAIL;
 
-        char record_data[MAX_DNS_A_LEN] = { 0 };
+        char record_data[MAX_HOST_LEN] = { 0 };
         char* data_ptr = (char*)(&answerRR_hdr->rd_length + 1); // pts to data string field
 
         if (strncmp(record_string, "A", strlen("A")) == SUCCESS)          // get from data len and add '.'
@@ -704,7 +704,7 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigne
         append_to_log(log_msg);
         answerRR_name = (unsigned char*)(answerRR_hdr + 1) + ntohs(answerRR_hdr->rd_length);
 
-        if ((char*)answerRR_name > & pRecv_buff[pInputs->bytes_recv])
+        if ((char*)answerRR_name > &pRecv_buff[pInputs->bytes_recv])
         {
             append_to_log("  ++ invalid record: RR value length beyond packet\n");
             return FAIL;
@@ -717,11 +717,12 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigne
 
 static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char** output_string, char* temp_buff)
 {
-    if ((start_string[0] & COMPRESSION_MASK) == COMPRESSION_MASK)
+    uint16_t max_host_length = (uint16_t) MAX_HOST_LEN;
+    if ((unsigned char)start_string[0] == COMPRESSION_MASK)
     {
         uint32_t next_offset = (uint16_t)(((uint8_t)start_string[0] << 10) + start_string[1]); //answer_name[0] & !COMPRESSION_MASK;
 
-        if (get_compressed_field(pInputs, pRecv_buff, next_offset, temp_buff, MAX_HOST_LEN) != SUCCESS)
+        if (get_compressed_field(pInputs, pRecv_buff, next_offset, temp_buff, &max_host_length) != SUCCESS)
             return FAIL;
 
         *output_string = temp_buff;
@@ -733,24 +734,26 @@ static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start
     return SUCCESS;
 }
 
-static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField, uint16_t aData_length)
+static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField, uint16_t* pData_length)
 {
     if (update_jumps() != SUCCESS)
         return FAIL;
 
     int i, j;
+    uint16_t dyn_length = *pData_length;
+    int32_t jumped = FALSE;
 
     char* ptr = &pRecv_buff[byte_offset];
     // I first need to check every byte to see if it is a compressed value and points
     // to another field within the packet
 
-    for (i = 0, j = 0; ptr[i] != NULL && j < aData_length; i++)
+    for (i = 0, j = 0; ptr[i] != NULL && j < dyn_length; i++)
     {
-        if (ptr[i] == COMPRESSION_MASK)
+        if ((unsigned char)ptr[i] == COMPRESSION_MASK)
         {   // copy from ptr[0] to ptr[i-1] into buff
             //printf("compressed\n");
             //current_spot = answer_name;
-            uint16_t new_offset = (((uint8_t)ptr[i] << 10) + ptr[i+1]);
+            uint16_t new_offset = ((uint16_t)((uint8_t)ptr[i] << 10) + (uint8_t)ptr[i+1]);
 
             if (new_offset > pInputs->bytes_recv - 1)
             {
@@ -768,16 +771,21 @@ static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_
                 return FAIL;
 
             i = -1; // reset index & account for loop update
+            jumped = TRUE;
         }
         else
         {
             pField[j++] = ptr[i];
+
+            if (jumped == TRUE)
+                dyn_length++; // I want to continue past aData_length if a jump was made, go until NULL            
         }
 
-        if (j > aData_length)
+        if (j > dyn_length || j > MAX_HOST_LEN - 1)// jumped == FALSE)
             return FAIL;
     }
-    
+    *pData_length = dyn_length; // +1; // include extra char for null
+
     return SUCCESS;
 }
 
@@ -1071,19 +1079,19 @@ static int32_t query_to_host_string(Inputs_t* pInputs, char* pQuery_str)
     return SUCCESS;
 }
 
-static int32_t parse_answer_data(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char* temp_buff, uint16_t aData_length)
+static int32_t parse_answer_data(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char* temp_buff, uint16_t* pData_length)
 {
     if (start_string < pRecv_buff)
         return FAIL;
 
-    char* ptr = start_string;
-    uint32_t next_offset = (ptr - pRecv_buff);
+    unsigned char* ptr = (unsigned char*) start_string;
+    uint32_t next_offset = (ptr - (unsigned char*)pRecv_buff);
 
     if (*ptr == COMPRESSION_MASK)
         next_offset = (uint16_t)(((uint8_t)ptr[0] << 10) + ptr[1]); //answer_name[0] & !COMPRESSION_MASK;
 
     gNum_jumps--; // undo what will have happened
-    if (get_compressed_field(pInputs, pRecv_buff, next_offset, temp_buff, aData_length) != SUCCESS)
+    if (get_compressed_field(pInputs, pRecv_buff, next_offset, temp_buff, pData_length) != SUCCESS)
         return FAIL;
 
     return SUCCESS;
@@ -1121,15 +1129,17 @@ static int32_t getA_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char*
 {
     unsigned char byte_IP[MAX_HOST_LEN] = { 0 };
 
-    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)byte_IP, aData_length) != SUCCESS)
+    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)byte_IP, &aData_length) != SUCCESS)
         return FAIL;
-
+// ---------- TYPE A Only --------------
     if (strlen((char*)byte_IP) != aData_length)
         return FAIL;
 
     int32_t bytes_written = sprintf_s(pRecord_data, MAX_DNS_A_LEN * sizeof(char), "%u.%u.%u.%u", byte_IP[0], byte_IP[1], byte_IP[2], byte_IP[3]);
     if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "sprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
         return FAIL;
+
+// ---------- TYPE A Only --------------
 
     return SUCCESS;
 }
@@ -1138,15 +1148,20 @@ static int32_t getNS_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, char
 {
     unsigned char ns_name[MAX_HOST_LEN] = { 0 };
 
-    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)ns_name, aData_length) != SUCCESS)
+    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)ns_name, &aData_length) != SUCCESS)
         return FAIL;
 
-    if (strlen((char*)ns_name) != aData_length)
+// ---------- TYPE String Only -------------
+    if (null_strlen((char*)ns_name) > aData_length)
         return FAIL;
 
-    //int32_t bytes_written = sprintf_s(pRecord_data, MAX_DNS_A_LEN * sizeof(char), "%u.%u.%u.%u", byte_IP[0], byte_IP[1], byte_IP[2], byte_IP[3]);
-    //if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "sprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
-    //    return FAIL;
+    int32_t bytes_written = sprintf_s(pRecord_data, MAX_HOST_LEN * sizeof(char), "%s", ns_name);
+    if (err_check(bytes_written >= (LOG_LINE_SIZE * sizeof(char)) || bytes_written == ERR_TRUNCATION, "sprintf_s() exceeded buffer size", __FILE__, __FUNCTION__, __LINE__))
+        return FAIL;
+
+// ---------- TYPE String Only -------------
+
+
 
     return SUCCESS;
 }
@@ -1155,7 +1170,7 @@ static int32_t getCNAME_data(Inputs_t* pInputs, char* pRecv_buff, char* pData, c
 {
     unsigned char cname[MAX_HOST_LEN] = { 0 };
 
-    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)cname, aData_length) != SUCCESS)
+    if (parse_answer_data(pInputs, pRecv_buff, pData, (char*)cname, &aData_length) != SUCCESS)
         return FAIL;
 
     if (strlen((char*)cname) != aData_length)

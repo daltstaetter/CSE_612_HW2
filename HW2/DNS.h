@@ -106,7 +106,7 @@ static int32_t parse_ResourceRecord(Inputs_t* pInputs, char* pRecv_buff, unsigne
 
 static int32_t parse_query_name(Inputs_t* pInputs, char* pRecv_buff, char* start_string, char** output_string, char* temp_buff);
 
-static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField, uint16_t aData_length);
+static int32_t get_compressed_field(Inputs_t* pInputs, char* pRecv_buff, uint16_t byte_offset, char* pField, uint16_t* pData_length);
 
 // auxillary functions
 int32_t null_strlen(const char* str);
